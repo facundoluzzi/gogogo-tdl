@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package editor;
+
+option go_package = "./;api";
+
+service TextEditor {
+  rpc ReadFile(ReadFileRequest) returns (ReadFileResponse);
+}
+
+message ReadFileRequest {
+  string filename = 1;
+}
+
+message ReadFileResponse {
+  string content = 1;
+}
