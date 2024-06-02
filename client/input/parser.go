@@ -1,22 +1,14 @@
-package main
+package input
 
 import (
-	"context"
 	"errors"
-	"file-editor/api"
-	"file-editor/commands"
 	"flag"
 	"fmt"
-	"log"
-	"os"
-	"time"
-
-	"google.golang.org/grpc"
+	"gogogo-tdl/commands"
 )
 
-const (
-	address = "localhost:50051"
-)
+type Parser struct {
+}
 
 type Command interface {
 	Run() error
@@ -28,30 +20,16 @@ type CommandLineArgs struct {
 	Content string
 }
 
-func main() {
-	conn, err := grpc.NewClient(address, grpc.WithInsecure())
+func (i *Parser) Parse() (Command, error) {
+	args, err := parseArguments()
 	if err != nil {
-		log.Fatalf("did not connect: %v", err)
+		return nil, errors.New("error parsing input")
 	}
-
-	defer conn.Close()
-	c := api.NewTextEditorClient(conn)
-
-	if len(os.Args) < 2 {
-		panic("filename is required")
-	}
-
-	filename := os.Args[1]
-
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	defer cancel()
-
-	file, err := c.ReadFile(ctx, &api.ReadFileRequest{Filename: filename})
+	command, err := getCommandFromArgs(args)
 	if err != nil {
-		log.Fatalf("could not open file %s: %v", filename, err)
+		return nil, errors.New("error creating command")
 	}
-
-	fmt.Println(file.Content)
+	return command, nil
 }
 
 func parseArguments() (*CommandLineArgs, error) {
