@@ -1,7 +1,7 @@
 package client
 
 import (
-	"gogogo-tdl/client/input"
+	"file-editor/client/input"
 	"google.golang.org/grpc"
 	"log"
 )

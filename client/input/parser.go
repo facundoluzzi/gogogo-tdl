@@ -2,9 +2,9 @@ package input
 
 import (
 	"errors"
+	"file-editor/commands"
 	"flag"
 	"fmt"
-	"gogogo-tdl/commands"
 )
 
 type Parser struct {
