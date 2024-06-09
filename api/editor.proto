@@ -6,6 +6,7 @@ option go_package = "./;api";
 
 service TextEditor {
   rpc ReadFile(ReadFileRequest) returns (ReadFileResponse);
+  rpc SaveFile(SaveFileRequest) returns (SaveFileResponse);
 }
 
 message ReadFileRequest {
@@ -14,4 +15,13 @@ message ReadFileRequest {
 
 message ReadFileResponse {
   string content = 1;
+}
+
+message SaveFileRequest {
+  string filename = 1;
+  bytes content = 2;
+}
+
+message SaveFileResponse {
+  string response = 1;
 }

@@ -4,11 +4,10 @@ import (
 	"context"
 	"file-editor/api"
 	"fmt"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	"log"
 	"os"
-	"time"
-
-	"google.golang.org/grpc"
 )
 
 const (
@@ -16,7 +15,7 @@ const (
 )
 
 func main() {
-	conn, err := grpc.NewClient(address, grpc.WithInsecure())
+	conn, err := grpc.NewClient(address, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatalf("did not connect: %v", err)
 	}
@@ -30,13 +29,16 @@ func main() {
 
 	filename := os.Args[1]
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	defer cancel()
-
-	file, err := c.ReadFile(ctx, &api.ReadFileRequest{Filename: filename})
+	a, _ := os.Getwd()
+	content, err := os.ReadFile(fmt.Sprintf(a + "/cmd/client/" + filename))
 	if err != nil {
 		log.Fatalf("could not open file %s: %v", filename, err)
 	}
 
-	fmt.Println(file.Content)
+	ctx := context.Background()
+
+	_, err = c.SaveFile(ctx, &api.SaveFileRequest{Filename: filename, Content: content})
+	if err != nil {
+		log.Fatalf("could not create file %s: %v", filename, err)
+	}
 }

@@ -17,7 +17,9 @@ func main() {
 	}
 	s := grpc.NewServer()
 
-	filesService := filesService.New()
+	ch := make(chan []byte)
+
+	filesService := filesService.New(ch)
 
 	handler := handlers.New(filesService)
 
