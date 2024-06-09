@@ -6,6 +6,7 @@ import (
 	"file-editor/api"
 	"fmt"
 	"os"
+	"path/filepath"
 	"time"
 )
 
@@ -26,8 +27,12 @@ func New(ch chan []byte) *Service {
 }
 
 func (s *Service) ReadFile(ctx context.Context, filename string) (*api.ReadFileResponse, error) {
-	a, _ := os.Getwd()
-	content, err := os.ReadFile(fmt.Sprintf(a + "/pkg/files/" + filename))
+	path, err := s.getFilePath(filename)
+	if err != nil {
+		return nil, err
+	}
+
+	content, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
@@ -46,8 +51,13 @@ func (s *Service) SaveFile(ctx context.Context, request *api.SaveFileRequest) (*
 	header[lastMessageHeaderIndex] = byte(notLastMessage)
 	binary.LittleEndian.PutUint32(header[filenameHeaderStartIndex:filenameHeaderEndIndex], uint32(len(filename)))
 
+	path, err := s.getFilePath(filename)
+	if err != nil {
+		return nil, err
+	}
+
 	// create the new file, overwriting if it exists
-	_, err := os.Create(filename)
+	_, err = os.Create(path)
 	if err != nil {
 		return nil, fmt.Errorf("cannot create a new file: %w", err)
 	}
@@ -110,4 +120,13 @@ func (s *Service) RunConsumer() {
 
 		time.Sleep(time.Second)
 	}
+}
+
+func (s *Service) getFilePath(filename string) (string, error) {
+	cwd, err := os.Getwd()
+	if err != nil {
+		return "", fmt.Errorf("error getting current working directory: %w", err)
+	}
+
+	return filepath.Join(cwd, filesFolder, filename), nil
 }
