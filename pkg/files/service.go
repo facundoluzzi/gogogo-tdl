@@ -27,6 +27,11 @@ func New(ch chan []byte) *Service {
 }
 
 func (s *Service) ReadFile(ctx context.Context, filename string) (*api.ReadFileResponse, error) {
+	err := s.existsFile(filename)
+	if err != nil {
+		return nil, err
+	}
+
 	path, err := s.getFilePath(filename)
 	if err != nil {
 		return nil, err
@@ -75,7 +80,7 @@ func (s *Service) SaveFile(ctx context.Context, request *api.SaveFileRequest) (*
 		s.Producer <- bytesToSend
 	}
 
-	return &api.SaveFileResponse{Response: "success"}, nil
+	return &api.SaveFileResponse{Response: "PROCESSING"}, nil
 }
 
 func (s *Service) RunConsumer() {
@@ -129,4 +134,20 @@ func (s *Service) getFilePath(filename string) (string, error) {
 	}
 
 	return filepath.Join(cwd, filesFolder, filename), nil
+}
+
+func (s *Service) existsFile(filename string) error {
+	cwd, err := os.Getwd()
+	if err != nil {
+		return fmt.Errorf("error getting current working directory: %w", err)
+	}
+
+	directories, err := os.ReadDir(cwd + filesFolder)
+	for _, dir := range directories {
+		if dir.Name() == filename {
+			return nil
+		}
+	}
+
+	return NewFileNotFoundError("invalid request, file doesn't exists")
 }
