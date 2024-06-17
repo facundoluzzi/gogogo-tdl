@@ -7,18 +7,21 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sync"
 	"time"
 )
 
 type Service struct {
-	Producer chan []byte
-	Consumer chan []byte
+	Producer   chan []byte
+	Consumer   chan []byte
+	waitGroups map[string]*sync.WaitGroup
 }
 
 func New(ch chan []byte) *Service {
 	service := &Service{
-		Producer: ch,
-		Consumer: ch,
+		Producer:   ch,
+		Consumer:   ch,
+		waitGroups: make(map[string]*sync.WaitGroup),
 	}
 
 	go service.RunConsumer()
@@ -47,7 +50,6 @@ func (s *Service) ReadFile(ctx context.Context, filename string) (*api.ReadFileR
 
 // SaveFile creates a new file using the content provided in the request
 func (s *Service) SaveFile(ctx context.Context, request *api.SaveFileRequest) (*api.SaveFileResponse, error) {
-	// TODO lock file by name
 	fileBytes := request.Content
 	filename := request.Filename
 
@@ -67,6 +69,10 @@ func (s *Service) SaveFile(ctx context.Context, request *api.SaveFileRequest) (*
 		return nil, fmt.Errorf("cannot create a new file: %w", err)
 	}
 
+	wg := &sync.WaitGroup{}
+	wg.Add(1)
+	s.waitGroups[filename] = wg
+
 	for i := 0; i < len(fileBytes); i += bytesSize {
 		end := i + bytesSize
 
@@ -80,7 +86,10 @@ func (s *Service) SaveFile(ctx context.Context, request *api.SaveFileRequest) (*
 		s.Producer <- bytesToSend
 	}
 
-	return &api.SaveFileResponse{Response: "PROCESSING"}, nil
+	wg.Wait()
+	delete(s.waitGroups, filename)
+
+	return &api.SaveFileResponse{Response: fmt.Sprintf("File '%s' has been uploaded successfully", filename)}, nil
 }
 
 func (s *Service) RunConsumer() {
@@ -100,7 +109,13 @@ func (s *Service) RunConsumer() {
 		filename := string(bytes[headerSize : headerSize+filenameLen])
 		data := bytes[headerSize+filenameLen:]
 
-		file, err := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
+		path, err := s.getFilePath(filename)
+		if err != nil {
+			fmt.Printf("error getting file path: %s\n", err.Error())
+			continue
+		}
+
+		file, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
 		if err != nil {
 			fmt.Printf("error opening file: %s\n", err.Error())
 			continue
@@ -120,7 +135,9 @@ func (s *Service) RunConsumer() {
 		}
 
 		if bytes[lastMessageHeaderIndex] == lastMessage {
-			// TODO release lock
+			if wg, exists := s.waitGroups[filename]; exists {
+				wg.Done()
+			}
 		}
 
 		time.Sleep(time.Second)
