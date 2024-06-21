@@ -58,6 +58,7 @@ func (s *Service) SaveFile(ctx context.Context, request *api.SaveFileRequest) (*
 	header[lastMessageHeaderIndex] = byte(notLastMessage)
 	binary.LittleEndian.PutUint32(header[filenameHeaderStartIndex:filenameHeaderEndIndex], uint32(len(filename)))
 
+	fmt.Println(filename)
 	path, err := s.getFilePath(filename)
 	if err != nil {
 		return nil, err
@@ -159,7 +160,11 @@ func (s *Service) existsFile(filename string) error {
 		return fmt.Errorf("error getting current working directory: %w", err)
 	}
 
-	directories, err := os.ReadDir(cwd + filesFolder)
+	directories, err := os.ReadDir(fmt.Sprintf("%s/%s", cwd, filesFolder))
+	if err != nil {
+		return fmt.Errorf("cannot read directory: %w", err)
+	}
+
 	for _, dir := range directories {
 		if dir.Name() == filename {
 			return nil
