@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
@@ -59,6 +60,23 @@ func (suite *FileServiceSuite) TestSaveFileSuccess() {
 	suite.Require().NoError(err)
 
 	suite.Assert().Equal(content, fileContent)
+}
+
+func (suite *FileServiceSuite) TestSaveFileErrorContextEnded() {
+	filename := "testfile.txt"
+	content := []byte("Hello, World!")
+
+	request := &api.SaveFileRequest{
+		Filename: filename,
+		Content:  content,
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
+	res, err := suite.service.SaveFile(ctx, request)
+	suite.Require().Nil(res)
+	suite.Require().ErrorIs(&files.ContextDoneError{}, err)
 }
 
 func (suite *FileServiceSuite) TestReadFileSuccess() {

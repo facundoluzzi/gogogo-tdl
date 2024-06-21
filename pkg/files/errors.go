@@ -24,3 +24,20 @@ func (f *FileNotFoundError) Is(target error) bool {
 	_, ok := target.(*FileNotFoundError)
 	return ok
 }
+
+type ContextDoneError struct {
+	*CustomError
+}
+
+func NewContextDoneError(message string) *ContextDoneError {
+	return &ContextDoneError{
+		CustomError: &CustomError{
+			message: message,
+		},
+	}
+}
+
+func (c *ContextDoneError) Is(target error) bool {
+	_, ok := target.(*ContextDoneError)
+	return ok
+}
