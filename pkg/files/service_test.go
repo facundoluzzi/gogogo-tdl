@@ -40,12 +40,12 @@ func (suite *FileServiceSuite) TearDownTest() {
 }
 
 func (suite *FileServiceSuite) TestSaveFileSuccess() {
-	filename := "testfile.txt"
-	filePath := filepath.Join(suite.temporaryDirectory, filename)
+	fileName := "testfile.txt"
+	filePath := filepath.Join(suite.temporaryDirectory, fileName)
 	content := []byte("Hello, World!")
 
 	request := &api.SaveFileRequest{
-		Filename: filename,
+		Filename: fileName,
 		Content:  content,
 	}
 
@@ -53,7 +53,7 @@ func (suite *FileServiceSuite) TestSaveFileSuccess() {
 	suite.Require().NotNil(res)
 	suite.Require().NoError(err)
 
-	suite.Assert().Equal("File 'testfile.txt' has been uploaded successfully", res.Response)
+	suite.Assert().Equal("Archivo 'testfile.txt' ha sido subido exitosamente", res.Response)
 
 	fileContent, err := os.ReadFile(filePath)
 	suite.Require().NotEmpty(fileContent)
@@ -63,11 +63,11 @@ func (suite *FileServiceSuite) TestSaveFileSuccess() {
 }
 
 func (suite *FileServiceSuite) TestSaveFileErrorContextEnded() {
-	filename := "testfile.txt"
+	fileName := "testfile.txt"
 	content := []byte("Hello, World!")
 
 	request := &api.SaveFileRequest{
-		Filename: filename,
+		Filename: fileName,
 		Content:  content,
 	}
 
@@ -80,14 +80,14 @@ func (suite *FileServiceSuite) TestSaveFileErrorContextEnded() {
 }
 
 func (suite *FileServiceSuite) TestReadFileSuccess() {
-	filename := "testfile.txt"
-	filePath := filepath.Join(suite.temporaryDirectory, filename)
+	fileName := "testfile.txt"
+	filePath := filepath.Join(suite.temporaryDirectory, fileName)
 	content := []byte("Hello, World!")
 
 	err := os.WriteFile(filePath, content, 0644)
 	assert.NoError(suite.T(), err)
 
-	response, err := suite.service.ReadFile(context.Background(), filename)
+	response, err := suite.service.ReadFile(context.Background(), fileName)
 	suite.Require().NoError(err)
 	suite.Require().NotNil(response)
 
@@ -95,9 +95,9 @@ func (suite *FileServiceSuite) TestReadFileSuccess() {
 }
 
 func (suite *FileServiceSuite) TestReadFileErrorFileNotFound() {
-	filename := "testfile.txt"
+	fileName := "testfile.txt"
 
-	response, err := suite.service.ReadFile(context.Background(), filename)
+	response, err := suite.service.ReadFile(context.Background(), fileName)
 	suite.Require().ErrorIs(&files.FileNotFoundError{}, err)
 	suite.Require().Nil(response)
 }

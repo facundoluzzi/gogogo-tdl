@@ -8,8 +8,8 @@ const bytesSize = 2
 const headerSize = 5
 
 const lastMessageHeaderIndex = 0
-const filenameHeaderStartIndex = 1
-const filenameHeaderEndIndex = 5
+const fileNameHeaderStartIndex = 1
+const fileNameHeaderEndIndex = 5
 
 const (
 	notLastMessage = 0

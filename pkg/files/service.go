@@ -29,13 +29,13 @@ func New(ch chan []byte) *Service {
 	return service
 }
 
-func (s *Service) ReadFile(ctx context.Context, filename string) (*api.ReadFileResponse, error) {
-	err := s.existsFile(filename)
+func (s *Service) ReadFile(ctx context.Context, fileName string) (*api.ReadFileResponse, error) {
+	err := s.existsFile(fileName)
 	if err != nil {
 		return nil, err
 	}
 
-	path, err := s.getFilePath(filename)
+	path, err := s.getFilePath(fileName)
 	if err != nil {
 		return nil, err
 	}
@@ -52,15 +52,15 @@ func (s *Service) ReadFile(ctx context.Context, filename string) (*api.ReadFileR
 func (s *Service) SaveFile(ctx context.Context, request *api.SaveFileRequest) (*api.SaveFileResponse, error) {
 	// Extraer los bytes del archivo y el nombre del archivo del request
 	fileBytes := request.Content
-	filename := request.Filename
+	fileName := request.Filename
 
 	// Crear un header que indique la longitud del nombre de archivo y el tipo de operación (crear)
 	header := make([]byte, headerSize)
 	header[lastMessageHeaderIndex] = byte(notLastMessage)
-	binary.LittleEndian.PutUint32(header[filenameHeaderStartIndex:filenameHeaderEndIndex], uint32(len(filename)))
+	binary.LittleEndian.PutUint32(header[fileNameHeaderStartIndex:fileNameHeaderEndIndex], uint32(len(fileName)))
 
 	// Obtener la ruta del archivo donde se guardará
-	path, err := s.getFilePath(filename)
+	path, err := s.getFilePath(fileName)
 	if err != nil {
 		return nil, err
 	}
@@ -74,14 +74,14 @@ func (s *Service) SaveFile(ctx context.Context, request *api.SaveFileRequest) (*
 	// WaitGroup para sincronizar la escritura del archivo
 	wg := &sync.WaitGroup{}
 	wg.Add(1)
-	s.waitGroups[filename] = wg
+	s.waitGroups[fileName] = wg
 
 	// Iterar sobre los bytes del archivo y enviarlos al canal Producer
 	for i := 0; i < len(fileBytes); i += bytesSize {
 		select {
 		case <-ctx.Done():
 			// Si el contexto se cancela, retornar un error indicando la cancelación
-			return nil, NewContextDoneError(fmt.Sprintf("contexto cancelado durante la escritura del archivo '%s': %s", filename, ctx.Err().Error()))
+			return nil, NewContextDoneError(fmt.Sprintf("contexto cancelado durante la escritura del archivo '%s': %s", fileName, ctx.Err().Error()))
 		default:
 			end := i + bytesSize
 
@@ -92,7 +92,7 @@ func (s *Service) SaveFile(ctx context.Context, request *api.SaveFileRequest) (*
 			}
 
 			// Construir los bytes a enviar, incluyendo el header y los datos del archivo
-			bytesToSend := append(header, append([]byte(filename), fileBytes[i:end]...)...)
+			bytesToSend := append(header, append([]byte(fileName), fileBytes[i:end]...)...)
 
 			// Enviar los bytes al canal Producer
 			s.Producer <- bytesToSend
@@ -101,11 +101,11 @@ func (s *Service) SaveFile(ctx context.Context, request *api.SaveFileRequest) (*
 
 	// Esperar a que se complete la escritura del archivo
 	wg.Wait()
-	delete(s.waitGroups, filename)
+	delete(s.waitGroups, fileName)
 
 	// Retornar la respuesta de éxito
 	return &api.SaveFileResponse{
-		Response: fmt.Sprintf("Archivo '%s' ha sido subido exitosamente", filename),
+		Response: fmt.Sprintf("Archivo '%s' ha sido subido exitosamente", fileName),
 	}, nil
 }
 
@@ -118,16 +118,16 @@ func (s *Service) RunConsumer() {
 		}
 
 		// Obtener la longitud del nombre de archivo del header
-		filenameLen := int(binary.LittleEndian.Uint32(bytes[filenameHeaderStartIndex:filenameHeaderEndIndex]))
+		fileNameLen := int(binary.LittleEndian.Uint32(bytes[fileNameHeaderStartIndex:fileNameHeaderEndIndex]))
 
-		if len(bytes) < headerSize+filenameLen {
+		if len(bytes) < headerSize+fileNameLen {
 			fmt.Println("error: slice de bytes inválido")
 			continue
 		}
 
 		// Extraer el nombre del archivo y los datos del byte slice recibido
-		filename := string(bytes[headerSize : headerSize+filenameLen])
-		data := bytes[headerSize+filenameLen:]
+		filename := string(bytes[headerSize : headerSize+fileNameLen])
+		data := bytes[headerSize+fileNameLen:]
 
 		// Obtener la ruta del archivo donde se escribirán los datos
 		path, err := s.getFilePath(filename)
