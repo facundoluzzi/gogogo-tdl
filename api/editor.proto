@@ -7,6 +7,7 @@ option go_package = "./;api";
 service TextEditor {
   rpc ReadFile(ReadFileRequest) returns (ReadFileResponse);
   rpc SaveFile(SaveFileRequest) returns (SaveFileResponse);
+  rpc FindText(FindTextRequest) returns (FindTextResponse);
 }
 
 message ReadFileRequest {
@@ -24,4 +25,14 @@ message SaveFileRequest {
 
 message SaveFileResponse {
   string response = 1;
+}
+
+message FindTextRequest {
+  string filename = 1;
+  string search_text = 2;
+}
+
+message FindTextResponse {
+  int64 count = 1;
+  repeated string lines = 2;
 }

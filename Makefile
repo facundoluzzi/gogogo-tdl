@@ -2,6 +2,9 @@
 run-server:
 	go run ./cmd/server/main.go
 
+run-client-find-text:
+	go run ./cmd/client/main.go test.txt asds
+
 # Comando para correr los tests
 test:
 	go test ./... -v

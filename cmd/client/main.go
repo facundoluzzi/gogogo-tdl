@@ -4,10 +4,11 @@ import (
 	"context"
 	"file-editor/api"
 	"fmt"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 	"log"
 	"os"
+
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 const (
@@ -29,16 +30,12 @@ func main() {
 
 	filename := os.Args[1]
 
-	a, _ := os.Getwd()
-	content, err := os.ReadFile(fmt.Sprintf(a + "/cmd/client/" + filename))
-	if err != nil {
-		log.Fatalf("could not open file %s: %v", filename, err)
-	}
-
 	ctx := context.Background()
 
-	_, err = c.SaveFile(ctx, &api.SaveFileRequest{Filename: filename, Content: content})
+	data, err := c.FindText(ctx, &api.FindTextRequest{Filename: filename, SearchText: os.Args[2]})
 	if err != nil {
 		log.Fatalf("could not create file %s: %v", filename, err)
 	}
+
+	fmt.Println(data)
 }

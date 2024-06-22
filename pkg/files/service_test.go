@@ -101,3 +101,38 @@ func (suite *FileServiceSuite) TestReadFileErrorFileNotFound() {
 	suite.Require().ErrorIs(&files.FileNotFoundError{}, err)
 	suite.Require().Nil(response)
 }
+
+func (suite *FileServiceSuite) TestFindTextSuccess() {
+	fileName := "testfile.txt"
+	filePath := filepath.Join(suite.temporaryDirectory, fileName)
+	content := []byte("Hello, 1 Hello!\nHello, 2!\nHello, 3!")
+
+	err := os.WriteFile(filePath, content, 0644)
+	suite.Require().NoError(err)
+
+	request := &api.FindTextRequest{
+		Filename:   fileName,
+		SearchText: "Hello",
+	}
+
+	response, err := suite.service.FindText(context.Background(), request)
+	suite.Require().NoError(err)
+	suite.Require().NotNil(response)
+
+	suite.Assert().Equal(int64(4), response.Count)
+	suite.Assert().Len(response.Lines, 3)
+	suite.Assert().Contains(response.Lines, "Hello, 1 Hello!")
+	suite.Assert().Contains(response.Lines, "Hello, 2!")
+	suite.Assert().Contains(response.Lines, "Hello, 3!")
+}
+
+func (suite *FileServiceSuite) TestFindTextErrorFileNotFound() {
+	request := &api.FindTextRequest{
+		Filename:   "testfile.txt",
+		SearchText: "Hello",
+	}
+
+	response, err := suite.service.FindText(context.Background(), request)
+	suite.Require().ErrorIs(&files.FileNotFoundError{}, err)
+	suite.Require().Nil(response)
+}

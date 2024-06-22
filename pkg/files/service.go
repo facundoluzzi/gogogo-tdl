@@ -1,12 +1,14 @@
 package files
 
 import (
+	"bufio"
 	"context"
 	"encoding/binary"
 	"file-editor/api"
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 )
@@ -30,18 +32,19 @@ func New(ch chan []byte) *Service {
 }
 
 func (s *Service) ReadFile(ctx context.Context, fileName string) (*api.ReadFileResponse, error) {
-	err := s.existsFile(fileName)
-	if err != nil {
-		return nil, err
-	}
-
+	// Obtenenemos la ruta del archivo
 	path, err := s.getFilePath(fileName)
 	if err != nil {
 		return nil, err
 	}
 
+	// Leemos el archivo
 	content, err := os.ReadFile(path)
 	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, NewFileNotFoundError("solicitud inválida, el archivo no existe")
+		}
+
 		return nil, err
 	}
 
@@ -106,6 +109,50 @@ func (s *Service) SaveFile(ctx context.Context, request *api.SaveFileRequest) (*
 	// Retornar la respuesta de éxito
 	return &api.SaveFileResponse{
 		Response: fmt.Sprintf("Archivo '%s' ha sido subido exitosamente", fileName),
+	}, nil
+}
+
+func (s *Service) FindText(ctx context.Context, req *api.FindTextRequest) (*api.FindTextResponse, error) {
+	// Obtener la ruta del archivo
+	path, err := s.getFilePath(req.Filename)
+	if err != nil {
+		return nil, fmt.Errorf("error obteniendo la ruta del archivo: %w", err)
+	}
+
+	// Abrir el archivo en modo lectura
+	file, err := os.Open(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, NewFileNotFoundError("solicitud inválida, el archivo no existe")
+		}
+
+		return nil, fmt.Errorf("error abriendo el archivo: %w", err)
+	}
+
+	defer file.Close()
+
+	// Variables para almacenar las líneas que contienen el texto y el contador de ocurrencias
+	var lines []string
+	var count int64
+
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		line := scanner.Text()
+
+		if strings.Contains(line, req.SearchText) {
+			lines = append(lines, line)
+			count += int64(strings.Count(line, req.SearchText))
+		}
+	}
+
+	if err := scanner.Err(); err != nil {
+		return nil, fmt.Errorf("error escaneando el archivo: %w", err)
+	}
+
+	// Retornar la cantidad de ocurrencias y las líneas que coinciden
+	return &api.FindTextResponse{
+		Count: count,
+		Lines: lines,
 	}, nil
 }
 
@@ -178,28 +225,4 @@ func (s *Service) getFilePath(filename string) (string, error) {
 	}
 
 	return filepath.Join(cwd, filesFolder, filename), nil
-}
-
-// existsFile verifica si el archivo especificado existe en el directorio filesFolder
-func (s *Service) existsFile(filename string) error {
-	cwd, err := os.Getwd()
-	if err != nil {
-		return fmt.Errorf("error obteniendo el directorio de trabajo actual: %w", err)
-	}
-
-	// Leer los archivos en el directorio especificado
-	directories, err := os.ReadDir(fmt.Sprintf("%s/%s", cwd, filesFolder))
-	if err != nil {
-		return fmt.Errorf("no se pudo leer el directorio: %w", err)
-	}
-
-	// Verificar si el archivo existe en el directorio
-	for _, dir := range directories {
-		if dir.Name() == filename {
-			return nil
-		}
-	}
-
-	// Retornar un error personalizado si el archivo no existe
-	return NewFileNotFoundError("solicitud inválida, el archivo no existe")
 }
