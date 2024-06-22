@@ -6,6 +6,7 @@ import (
 	"encoding/binary"
 	"file-editor/api"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -53,33 +54,32 @@ func (s *Service) ReadFile(ctx context.Context, fileName string) (*api.ReadFileR
 
 // SaveFile crea un nuevo archivo usando el contenido proporcionado en la solicitud
 func (s *Service) SaveFile(ctx context.Context, request *api.SaveFileRequest) (*api.SaveFileResponse, error) {
-	// Extraer los bytes del archivo y el nombre del archivo del request
 	fileBytes := request.Content
 	fileName := request.Filename
 
-	// Crear un header que indique la longitud del nombre de archivo y el tipo de operación (crear)
+	// Creamos un header que indique la longitud del nombre de archivo
 	header := make([]byte, headerSize)
 	header[lastMessageHeaderIndex] = byte(notLastMessage)
 	binary.LittleEndian.PutUint32(header[fileNameHeaderStartIndex:fileNameHeaderEndIndex], uint32(len(fileName)))
 
-	// Obtener la ruta del archivo donde se guardará
+	// Obtenemos la ruta del archivo donde se almacenara
 	path, err := s.getFilePath(fileName)
 	if err != nil {
 		return nil, err
 	}
 
-	// Crear el nuevo archivo, sobrescribiéndolo si ya existe
+	// Creamos el nuevo archivo, sobrescribiéndolo si ya existe
 	_, err = os.Create(path)
 	if err != nil {
 		return nil, fmt.Errorf("no se pudo crear un nuevo archivo: %w", err)
 	}
 
-	// WaitGroup para sincronizar la escritura del archivo
+	// Creamos un WaitGroup para sincronizar la escritura del archivo
 	wg := &sync.WaitGroup{}
 	wg.Add(1)
 	s.waitGroups[fileName] = wg
 
-	// Iterar sobre los bytes del archivo y enviarlos al canal Producer
+	// Iteramos sobre los bytes del archivo y los enviamos en el channel
 	for i := 0; i < len(fileBytes); i += bytesSize {
 		select {
 		case <-ctx.Done():
@@ -88,38 +88,37 @@ func (s *Service) SaveFile(ctx context.Context, request *api.SaveFileRequest) (*
 		default:
 			end := i + bytesSize
 
-			// Actualizar el header si es el último mensaje enviado
+			// Actualizamos el header si es el último mensaje a enviar
 			if end >= len(fileBytes) {
 				header[lastMessageHeaderIndex] = byte(lastMessage)
 				end = len(fileBytes)
 			}
 
-			// Construir los bytes a enviar, incluyendo el header y los datos del archivo
+			// Armamos los bytes a enviar, incluyendo el header y los datos del archivo
 			bytesToSend := append(header, append([]byte(fileName), fileBytes[i:end]...)...)
 
-			// Enviar los bytes al canal Producer
+			// Enviamos los bytes en el channel
 			s.Producer <- bytesToSend
 		}
 	}
 
-	// Esperar a que se complete la escritura del archivo
+	// Esperamos a que se complete la escritura del archivo
 	wg.Wait()
 	delete(s.waitGroups, fileName)
 
-	// Retornar la respuesta de éxito
 	return &api.SaveFileResponse{
 		Response: fmt.Sprintf("Archivo '%s' ha sido subido exitosamente", fileName),
 	}, nil
 }
 
 func (s *Service) FindText(ctx context.Context, req *api.FindTextRequest) (*api.FindTextResponse, error) {
-	// Obtener la ruta del archivo
+	// Obtenemos la ruta del archivo
 	path, err := s.getFilePath(req.Filename)
 	if err != nil {
 		return nil, fmt.Errorf("error obteniendo la ruta del archivo: %w", err)
 	}
 
-	// Abrir el archivo en modo lectura
+	// Abrimos el archivo en modo lectura
 	file, err := os.Open(path)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -149,14 +148,20 @@ func (s *Service) FindText(ctx context.Context, req *api.FindTextRequest) (*api.
 		return nil, fmt.Errorf("error escaneando el archivo: %w", err)
 	}
 
-	// Retornar la cantidad de ocurrencias y las líneas que coinciden
+	// Retornamos la cantidad de ocurrencias y las líneas que coinciden
 	return &api.FindTextResponse{
 		Count: count,
 		Lines: lines,
 	}, nil
 }
 
-// RunConsumer simula un consumidor que lee bytes del canal Consumer y los escribe en archivos
+// ReadAllFiles lee todos los archivos en el working directory y retorna una respuesta que contiene el nombre y el contenido de cada archivo
+func (s *Service) ReadAllFiles(ctx context.Context, req *api.Empty) (*api.ReadAllFilesResponse, error) {
+	// return s.readAllFilesSynchronously() //Para comparar la ventaja usando threads,
+	return s.readAllFilesConcurrently()
+}
+
+// RunConsumer simula un consumidor que lee bytes del channel Consumer y los escribe en archivos
 func (s *Service) RunConsumer() {
 	for bytes := range s.Consumer {
 		if len(bytes) < headerSize {
@@ -164,7 +169,7 @@ func (s *Service) RunConsumer() {
 			continue
 		}
 
-		// Obtener la longitud del nombre de archivo del header
+		// Obtenemos la longitud del nombre de archivo del header
 		fileNameLen := int(binary.LittleEndian.Uint32(bytes[fileNameHeaderStartIndex:fileNameHeaderEndIndex]))
 
 		if len(bytes) < headerSize+fileNameLen {
@@ -172,25 +177,25 @@ func (s *Service) RunConsumer() {
 			continue
 		}
 
-		// Extraer el nombre del archivo y los datos del byte slice recibido
+		// Extraemos el nombre del archivo y los datos del byte slice recibido
 		filename := string(bytes[headerSize : headerSize+fileNameLen])
 		data := bytes[headerSize+fileNameLen:]
 
-		// Obtener la ruta del archivo donde se escribirán los datos
+		// Obtenemos la ruta del archivo donde se escribirán los datos
 		path, err := s.getFilePath(filename)
 		if err != nil {
 			fmt.Printf("error obteniendo la ruta del archivo: %s\n", err.Error())
 			continue
 		}
 
-		// Abrir el archivo en modo escritura, creándolo si no existe y agregando al final si existe
+		// Abrimos el archivo en modo escritura, creándolo si no existe y agregando al final si existe
 		file, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
 		if err != nil {
 			fmt.Printf("error abriendo el archivo: %s\n", err.Error())
 			continue
 		}
 
-		// Escribir los datos en el archivo
+		// Escribimos los datos en el archivo
 		_, err = file.Write(data)
 		if err != nil {
 			fmt.Printf("error escribiendo en el archivo: %s\n", err.Error())
@@ -198,7 +203,7 @@ func (s *Service) RunConsumer() {
 			continue
 		}
 
-		// Cerrar el archivo después de escribir
+		// Cerramos el archivo después de escribir
 		err = file.Close()
 		if err != nil {
 			fmt.Printf("error cerrando el archivo: %s\n", err.Error())
@@ -212,9 +217,120 @@ func (s *Service) RunConsumer() {
 			}
 		}
 
-		// Esperar un segundo antes de procesar el próximo byte slice (simulación)
+		// Esperamos un segundo antes de procesar el próximo byte slice
 		time.Sleep(time.Second)
 	}
+}
+
+func (s *Service) readAllFilesConcurrently() (*api.ReadAllFilesResponse, error) {
+	start := time.Now()
+
+	wg := &sync.WaitGroup{}
+
+	results := make(chan FileContent)
+
+	cwd, err := os.Getwd()
+	if err != nil {
+		return nil, fmt.Errorf("error obteniendo el directorio de trabajo actual: %w", err)
+	}
+
+	directory := fmt.Sprintf("%s/%s", cwd, filesFolder)
+
+	// Leemos los archivos en el directorio especificado
+	directories, err := os.ReadDir(directory)
+	if err != nil {
+		return nil, fmt.Errorf("no se pudo leer el directorio: %w", err)
+	}
+
+	// Iteramos sobre todos los archivos en el working directory
+	for _, file := range directories {
+		if !file.IsDir() {
+
+			wg.Add(1)
+			go func(file os.DirEntry) {
+				// Agregamos un mini sleep para comprobar la diferencia de tiempo de ejecucion usando threads
+				time.Sleep(1 * time.Second)
+
+				defer wg.Done()
+
+				content, err := os.ReadFile(filepath.Join(directory, file.Name()))
+				if err != nil {
+					log.Printf("no se pudo leer el archivo %s, skippeando: %v", file.Name(), err)
+					return
+				}
+
+				results <- FileContent{
+					Name:    file.Name(),
+					Content: string(content),
+				}
+			}(file)
+		}
+	}
+
+	// Esperamos a que finalice la ejecucion de todos los threads creados anteriormente, y cerramos el channel
+	go func() {
+		wg.Wait()
+		close(results)
+	}()
+
+	response := &api.ReadAllFilesResponse{}
+
+	// Esta es la forma mas sencilla de iterar un vector de cualquier tipo en Go, pero tambien se admite la forma -> for int i:= 0; i < len(results); i++ {}
+	for result := range results {
+		response.Content = append(response.Content, &api.FileContent{
+			Name:    result.Name,
+			Content: result.Content,
+		})
+	}
+
+	// Calculamos el response time en segundos
+	response.ResponseTime = float32(time.Since(start).Seconds())
+
+	return response, nil
+}
+
+// readAllFilesSynchronously lee todos los archivos en un directorio especificado de manera sincrona y
+// retorna una respuesta que contiene el nombre y el contenido de cada archivo.
+func (s *Service) readAllFilesSynchronously() (*api.ReadAllFilesResponse, error) {
+	start := time.Now()
+
+	cwd, err := os.Getwd()
+	if err != nil {
+		return nil, fmt.Errorf("error obteniendo el directorio de trabajo actual: %w", err)
+	}
+
+	directory := fmt.Sprintf("%s/%s", cwd, filesFolder)
+
+	// Leemos los archivos en el directorio especificado
+	directories, err := os.ReadDir(directory)
+	if err != nil {
+		return nil, fmt.Errorf("no se pudo leer el directorio: %w", err)
+	}
+
+	response := &api.ReadAllFilesResponse{}
+
+	// Iteramos sobre todos los archivos en el working directory
+	for _, file := range directories {
+		if !file.IsDir() {
+			// Agregamos un mini sleep para comprobar la diferencia de tiempo iterando de forma sincrona
+			time.Sleep(1 * time.Second)
+			content, err := os.ReadFile(filepath.Join(directory, file.Name()))
+			if err != nil {
+				log.Printf("no se pudo leer el archivo %s, skippeando: %v", file.Name(), err)
+				continue
+			}
+
+			response.Content = append(response.Content, &api.FileContent{
+				Name:    file.Name(),
+				Content: string(content),
+			})
+		}
+	}
+
+	// Calculamos el response time en segundos
+	response.ResponseTime = float32(time.Since(start).Seconds())
+
+	return response, nil
 }
 
 // getFilePath devuelve la ruta completa del archivo en el sistema de archivos

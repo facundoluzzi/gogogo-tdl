@@ -6,6 +6,7 @@ import (
 )
 
 type FilesService interface {
+	ReadAllFiles(ctx context.Context, request *api.Empty) (*api.ReadAllFilesResponse, error)
 	ReadFile(ctx context.Context, filename string) (*api.ReadFileResponse, error)
 	SaveFile(ctx context.Context, request *api.SaveFileRequest) (*api.SaveFileResponse, error)
 	FindText(ctx context.Context, request *api.FindTextRequest) (*api.FindTextResponse, error)
@@ -32,4 +33,8 @@ func (h *Handler) SaveFile(ctx context.Context, req *api.SaveFileRequest) (*api.
 
 func (h *Handler) FindText(ctx context.Context, req *api.FindTextRequest) (*api.FindTextResponse, error) {
 	return h.FilesService.FindText(ctx, req)
+}
+
+func (h *Handler) ReadAllFiles(ctx context.Context, req *api.Empty) (*api.ReadAllFilesResponse, error) {
+	return h.FilesService.ReadAllFiles(ctx, req)
 }

@@ -5,7 +5,6 @@ import (
 	"file-editor/api"
 	"fmt"
 	"log"
-	"os"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -16,7 +15,15 @@ const (
 )
 
 func main() {
-	conn, err := grpc.NewClient(address, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	opts := []grpc.DialOption{
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithDefaultCallOptions(
+			grpc.MaxCallRecvMsgSize(100*1024*1024), // 100 MB
+			grpc.MaxCallSendMsgSize(100*1024*1024), // 100 MB
+		),
+	}
+
+	conn, err := grpc.NewClient(address, opts...)
 	if err != nil {
 		log.Fatalf("did not connect: %v", err)
 	}
@@ -24,17 +31,11 @@ func main() {
 	defer conn.Close()
 	c := api.NewTextEditorClient(conn)
 
-	if len(os.Args) < 2 {
-		panic("filename is required")
-	}
-
-	filename := os.Args[1]
-
 	ctx := context.Background()
 
-	data, err := c.FindText(ctx, &api.FindTextRequest{Filename: filename, SearchText: os.Args[2]})
+	data, err := c.ReadAllFiles(ctx, &api.Empty{})
 	if err != nil {
-		log.Fatalf("could not create file %s: %v", filename, err)
+		log.Fatalf("could read all files: %v", err)
 	}
 
 	fmt.Println(data)

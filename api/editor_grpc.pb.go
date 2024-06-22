@@ -19,9 +19,10 @@ import (
 const _ = grpc.SupportPackageIsVersion8
 
 const (
-	TextEditor_ReadFile_FullMethodName = "/editor.TextEditor/ReadFile"
-	TextEditor_SaveFile_FullMethodName = "/editor.TextEditor/SaveFile"
-	TextEditor_FindText_FullMethodName = "/editor.TextEditor/FindText"
+	TextEditor_ReadFile_FullMethodName     = "/editor.TextEditor/ReadFile"
+	TextEditor_ReadAllFiles_FullMethodName = "/editor.TextEditor/ReadAllFiles"
+	TextEditor_SaveFile_FullMethodName     = "/editor.TextEditor/SaveFile"
+	TextEditor_FindText_FullMethodName     = "/editor.TextEditor/FindText"
 )
 
 // TextEditorClient is the client API for TextEditor service.
@@ -29,6 +30,7 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type TextEditorClient interface {
 	ReadFile(ctx context.Context, in *ReadFileRequest, opts ...grpc.CallOption) (*ReadFileResponse, error)
+	ReadAllFiles(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*ReadAllFilesResponse, error)
 	SaveFile(ctx context.Context, in *SaveFileRequest, opts ...grpc.CallOption) (*SaveFileResponse, error)
 	FindText(ctx context.Context, in *FindTextRequest, opts ...grpc.CallOption) (*FindTextResponse, error)
 }
@@ -45,6 +47,16 @@ func (c *textEditorClient) ReadFile(ctx context.Context, in *ReadFileRequest, op
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ReadFileResponse)
 	err := c.cc.Invoke(ctx, TextEditor_ReadFile_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *textEditorClient) ReadAllFiles(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*ReadAllFilesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ReadAllFilesResponse)
+	err := c.cc.Invoke(ctx, TextEditor_ReadAllFiles_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -76,6 +88,7 @@ func (c *textEditorClient) FindText(ctx context.Context, in *FindTextRequest, op
 // for forward compatibility
 type TextEditorServer interface {
 	ReadFile(context.Context, *ReadFileRequest) (*ReadFileResponse, error)
+	ReadAllFiles(context.Context, *Empty) (*ReadAllFilesResponse, error)
 	SaveFile(context.Context, *SaveFileRequest) (*SaveFileResponse, error)
 	FindText(context.Context, *FindTextRequest) (*FindTextResponse, error)
 	mustEmbedUnimplementedTextEditorServer()
@@ -87,6 +100,9 @@ type UnimplementedTextEditorServer struct {
 
 func (UnimplementedTextEditorServer) ReadFile(context.Context, *ReadFileRequest) (*ReadFileResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ReadFile not implemented")
+}
+func (UnimplementedTextEditorServer) ReadAllFiles(context.Context, *Empty) (*ReadAllFilesResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ReadAllFiles not implemented")
 }
 func (UnimplementedTextEditorServer) SaveFile(context.Context, *SaveFileRequest) (*SaveFileResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SaveFile not implemented")
@@ -121,6 +137,24 @@ func _TextEditor_ReadFile_Handler(srv interface{}, ctx context.Context, dec func
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(TextEditorServer).ReadFile(ctx, req.(*ReadFileRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _TextEditor_ReadAllFiles_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Empty)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(TextEditorServer).ReadAllFiles(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: TextEditor_ReadAllFiles_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(TextEditorServer).ReadAllFiles(ctx, req.(*Empty))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -171,6 +205,10 @@ var TextEditor_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ReadFile",
 			Handler:    _TextEditor_ReadFile_Handler,
+		},
+		{
+			MethodName: "ReadAllFiles",
+			Handler:    _TextEditor_ReadAllFiles_Handler,
 		},
 		{
 			MethodName: "SaveFile",
