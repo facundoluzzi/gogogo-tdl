@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"encoding/binary"
+	"encoding/json"
 	"file-editor/api"
 	"fmt"
 	"log"
@@ -18,6 +19,9 @@ type Service struct {
 	Producer   chan []byte
 	Consumer   chan []byte
 	waitGroups map[string]*sync.WaitGroup
+
+	fileChans map[string]chan Command
+	mutex     sync.Mutex
 }
 
 func New(ch chan []byte) *Service {
@@ -25,6 +29,7 @@ func New(ch chan []byte) *Service {
 		Producer:   ch,
 		Consumer:   ch,
 		waitGroups: make(map[string]*sync.WaitGroup),
+		fileChans:  make(map[string]chan Command),
 	}
 
 	go service.RunConsumer()
@@ -32,7 +37,70 @@ func New(ch chan []byte) *Service {
 	return service
 }
 
-func (s *Service) ReadFile(ctx context.Context, fileName string) (*api.ReadFileResponse, error) {
+type Command struct {
+	Name         string
+	Filename     string
+	ResponseChan chan interface{}
+}
+
+func (s *Service) DoRequest(command string, filename string) (response interface{}, err error) {
+	responseChan := make(chan interface{})
+	fileChan := s.GetFileChan(filename)
+
+	commandRequest := Command{
+		Name:         command,
+		Filename:     filename,
+		ResponseChan: responseChan,
+	}
+
+	fileChan <- commandRequest
+
+	res := <-responseChan
+
+	return res, nil
+}
+
+func (s *Service) GetFileChan(filename string) chan Command {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
+	fileChan, exists := s.fileChans[filename]
+	if !exists {
+		fileChan = make(chan Command)
+
+		s.fileChans[filename] = fileChan
+
+		go s.HandleFileCommands(fileChan, filename)
+	}
+
+	return fileChan
+}
+
+func (s *Service) HandleFileCommands(fileChan chan Command, filename string) {
+	for command := range fileChan {
+		switch command.Name {
+		case "read":
+			response, err := s.ReadFile(filename)
+			if err != nil {
+				command.ResponseChan <- err
+				return
+			} else {
+				body, err := json.Marshal(response)
+				if err != nil {
+					command.ResponseChan <- err
+					return
+				}
+
+				command.ResponseChan <- string(body)
+			}
+		default:
+			command.ResponseChan <- fmt.Errorf("command not supported")
+			return
+		}
+	}
+}
+
+func (s *Service) ReadFile(fileName string) (*api.ReadFileResponse, error) {
 	// Obtenenemos la ruta del archivo
 	path, err := s.getFilePath(fileName)
 	if err != nil {
