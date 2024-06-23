@@ -76,3 +76,7 @@ func (c *TranslateCommand) Run() error {
 	}
 	return nil
 }
+
+func (c *TranslateCommand) Print() {
+	print(c.Name)
+}

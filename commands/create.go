@@ -25,3 +25,7 @@ func (c *CreateCommand) Run() error {
 	}
 	return nil
 }
+
+func (c *CreateCommand) Print() {
+	print(c.Name, c.Content)
+}
