@@ -15,9 +15,16 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
-	s := grpc.NewServer()
 
-	filesService := filesService.New()
+	opts := []grpc.ServerOption{
+		grpc.MaxRecvMsgSize(100 * 1024 * 1024), // 100 MB
+		grpc.MaxSendMsgSize(100 * 1024 * 1024), // 100 MB
+	}
+	s := grpc.NewServer(opts...)
+
+	ch := make(chan []byte)
+
+	filesService := filesService.New(ch)
 
 	handler := handlers.New(filesService)
 
