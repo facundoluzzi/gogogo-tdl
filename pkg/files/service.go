@@ -291,6 +291,7 @@ func (s *Service) readAllFilesConcurrently() (*api.ReadAllFilesResponse, error) 
 
 // readAllFilesSynchronously lee todos los archivos en un directorio especificado de manera sincrona y
 // retorna una respuesta que contiene el nombre y el contenido de cada archivo.
+// nolint:unused
 func (s *Service) readAllFilesSynchronously() (*api.ReadAllFilesResponse, error) {
 	start := time.Now()
 

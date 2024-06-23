@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"sort"
 	"testing"
 	"time"
 
@@ -135,4 +136,41 @@ func (suite *FileServiceSuite) TestFindTextErrorFileNotFound() {
 	response, err := suite.service.FindText(context.Background(), request)
 	suite.Require().ErrorIs(&files.FileNotFoundError{}, err)
 	suite.Require().Nil(response)
+}
+
+func (suite *FileServiceSuite) TestReadAllFilesSuccess() {
+	testFiles := []files.FileContent{
+		{"file1.txt", "Hello, file 1!"},
+		{"file2.txt", "Hello, file 2!"},
+		{"file3.txt", "Hello, file 3!"},
+	}
+
+	for _, file := range testFiles {
+		filePath := filepath.Join(suite.temporaryDirectory, file.Name)
+		err := os.WriteFile(filePath, []byte(file.Content), 0644)
+		suite.Require().NoError(err)
+	}
+
+	response, err := suite.service.ReadAllFiles(context.Background(), nil)
+	suite.Require().NoError(err)
+	suite.Require().NotNil(response)
+
+	suite.Assert().Len(response.Content, len(testFiles))
+
+	sort.Slice(response.Content, func(i, j int) bool {
+		return response.Content[i].Name < response.Content[j].Name
+	})
+
+	for i, fileContent := range response.Content {
+		suite.Assert().Equal(testFiles[i].Name, fileContent.Name)
+		suite.Assert().Equal(testFiles[i].Content, fileContent.Content)
+	}
+}
+
+func (suite *FileServiceSuite) TestReadAllFilesSuccessNoFilesFoundReturnEmptyResponse() {
+	response, err := suite.service.ReadAllFiles(context.Background(), nil)
+	suite.Require().NoError(err)
+	suite.Require().NotNil(response)
+
+	suite.Assert().Len(response.Content, 0)
 }
