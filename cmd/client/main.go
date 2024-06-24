@@ -1,13 +1,10 @@
 package main
 
 import (
-	"context"
-	"file-editor/api"
+	"errors"
+	client2 "file-editor/cmd/client/client"
+	"file-editor/cmd/client/input"
 	"fmt"
-	"log"
-
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 )
 
 const (
@@ -15,28 +12,22 @@ const (
 )
 
 func main() {
-	opts := []grpc.DialOption{
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithDefaultCallOptions(
-			grpc.MaxCallRecvMsgSize(100*1024*1024), // 100 MB
-			grpc.MaxCallSendMsgSize(100*1024*1024), // 100 MB
-		),
-	}
-
-	conn, err := grpc.NewClient(address, opts...)
+	textEditor, err := client2.NewTextEditorClient(address)
 	if err != nil {
-		log.Fatalf("did not connect: %v", err)
+		panic("error creating client")
 	}
-
-	defer conn.Close()
-	c := api.NewTextEditorClient(conn)
-
-	ctx := context.Background()
-
-	data, err := c.ReadAllFiles(ctx, &api.Empty{})
+	command, err := textEditor.ParseFromArgs()
+	if err == nil {
+		textEditor.ExecuteCommand(command)
+		return
+	}
+	if !errors.Is(err, input.ErrNoArgs) {
+		print("error parsing arguments")
+		return
+	}
+	err = textEditor.Run()
 	if err != nil {
-		log.Fatalf("could read all files: %v", err)
+		fmt.Print("error running client: ", err)
 	}
-
-	fmt.Println(data)
+	return
 }
