@@ -3,6 +3,7 @@ package commands
 import (
 	"context"
 	"file-editor/api"
+	"time"
 )
 
 type SaveFileCommand struct {
@@ -11,7 +12,8 @@ type SaveFileCommand struct {
 }
 
 func (c *SaveFileCommand) Run(t api.TextEditorClient) (string, error) {
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 	request := api.SaveFileRequest{
 		Filename: c.Name,
 		Content:  []byte(c.Content),

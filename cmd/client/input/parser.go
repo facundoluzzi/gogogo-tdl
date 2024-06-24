@@ -13,6 +13,7 @@ const (
 	ReadCommand = "read"
 	ReadAll     = "read-all"
 	FindCommand = "find"
+	HelpCommand = "help"
 )
 
 var (
@@ -95,6 +96,15 @@ func parseSlice(input []string) (*CommandLineArgs, error) {
 		}
 		return &CommandLineArgs{
 			Command: command,
+			Name:    input[1],
+			Body:    input[2],
+		}, nil
+	case HelpCommand:
+		if len(input) != 1 {
+			return nil, ErrInvalidInput
+		}
+		return &CommandLineArgs{
+			Command: command,
 		}, nil
 	}
 	return nil, ErrInvalidInput
@@ -134,6 +144,8 @@ func getCommandFromArgs(args *CommandLineArgs) (Command, error) {
 			Name: args.Name,
 			Text: args.Body,
 		}, nil
+	case HelpCommand:
+		return &commands.HelpCommand{}, nil
 	}
 	return nil, errors.New("invalid command")
 }

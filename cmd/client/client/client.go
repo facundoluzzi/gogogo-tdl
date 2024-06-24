@@ -50,25 +50,31 @@ func (c *TextEditor) Close() error {
 
 func (c *TextEditor) Run() error {
 	reader := bufio.NewReader(os.Stdin)
-	fmt.Print("Enter command: ")
-	for input, err := reader.ReadString('\n'); input != "exit"; {
+	fmt.Println("Enter command or write 'help' to see available command")
+	for {
+		input, err := reader.ReadString('\n')
 		if err != nil {
 			return fmt.Errorf("error reading command: %w", err)
 		}
 		input = strings.TrimSpace(input)
+		if input == "exit" {
+			fmt.Println("Exiting...")
+			break
+		}
 		command, err := c.parser.Parse(input)
 		if err != nil {
 			return fmt.Errorf("error parsing command: %w", err)
 		}
+		fmt.Println("Running command...")
 		response, err := command.Run(c.client)
 		if err != nil {
 			return fmt.Errorf("error running command: %w", err)
 
 		}
 		fmt.Println(response)
-		input, err = reader.ReadString('\n')
+		fmt.Print("Enter command: ")
 	}
-	print("closing client...")
+	fmt.Println("Closing client...")
 	c.conn.Close()
 	return nil
 }

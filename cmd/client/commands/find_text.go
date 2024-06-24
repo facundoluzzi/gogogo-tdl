@@ -4,6 +4,7 @@ import (
 	"context"
 	"file-editor/api"
 	"fmt"
+	"time"
 )
 
 type FindCommand struct {
@@ -12,7 +13,8 @@ type FindCommand struct {
 }
 
 func (c *FindCommand) Run(t api.TextEditorClient) (string, error) {
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 	request := api.FindTextRequest{
 		Filename:   c.Name,
 		SearchText: c.Text,

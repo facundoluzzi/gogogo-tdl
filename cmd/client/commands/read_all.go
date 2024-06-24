@@ -3,13 +3,15 @@ package commands
 import (
 	"context"
 	"file-editor/api"
+	"time"
 )
 
 type ReadAllCommand struct {
 }
 
 func (c *ReadAllCommand) Run(t api.TextEditorClient) (string, error) {
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 	r, err := t.ReadAllFiles(ctx, &api.Empty{})
 	if err != nil {
 		return "", err
