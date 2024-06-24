@@ -1,176 +1,157 @@
 package files_test
 
-// import (
-// 	"context"
-// 	"os"
-// 	"path/filepath"
-// 	"sort"
-// 	"testing"
-// 	"time"
+import (
+	"os"
+	"path/filepath"
+	"sort"
+	"testing"
 
-// 	"github.com/stretchr/testify/assert"
-// 	"github.com/stretchr/testify/suite"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/suite"
 
-// 	"file-editor/api"
-// 	"file-editor/pkg/files"
-// )
+	"file-editor/api"
+	"file-editor/pkg/files"
+)
 
-// type FileServiceSuite struct {
-// 	suite.Suite
-// 	service            *files.Service
-// 	temporaryDirectory string
-// }
+type FileServiceSuite struct {
+	suite.Suite
+	service            *files.Service
+	temporaryDirectory string
+}
 
-// func (suite *FileServiceSuite) SetupTest() {
-// 	ch := make(chan []byte)
-// 	suite.service = files.New(ch)
+func (suite *FileServiceSuite) SetupTest() {
+	ch := make(chan []byte)
+	suite.service = files.New(ch)
 
-// 	temporaryDirectory := filepath.Join(".", "filesstorage")
-// 	err := os.Mkdir(temporaryDirectory, 0755)
-// 	suite.temporaryDirectory = temporaryDirectory
-// 	suite.Require().NoError(err)
-// }
+	temporaryDirectory := filepath.Join(".", "filesstorage")
+	err := os.Mkdir(temporaryDirectory, 0755)
+	suite.temporaryDirectory = temporaryDirectory
+	suite.Require().NoError(err)
+}
 
-// func TestFileServiceSuite(t *testing.T) {
-// 	suite.Run(t, new(FileServiceSuite))
-// }
+func TestFileServiceSuite(t *testing.T) {
+	suite.Run(t, new(FileServiceSuite))
+}
 
-// func (suite *FileServiceSuite) TearDownTest() {
-// 	close(suite.service.Producer)
-// 	os.RemoveAll(suite.temporaryDirectory)
-// }
+func (suite *FileServiceSuite) TearDownTest() {
+	close(suite.service.Producer)
+	os.RemoveAll(suite.temporaryDirectory)
+}
 
-// func (suite *FileServiceSuite) TestSaveFileSuccess() {
-// 	fileName := "testfile.txt"
-// 	filePath := filepath.Join(suite.temporaryDirectory, fileName)
-// 	content := []byte("Hello, World!")
+func (suite *FileServiceSuite) TestSaveFileSuccess() {
+	fileName := "testfile.txt"
+	filePath := filepath.Join(suite.temporaryDirectory, fileName)
+	content := []byte("Hello, World!")
 
-// 	request := &api.SaveFileRequest{
-// 		Filename: fileName,
-// 		Content:  content,
-// 	}
+	request := &api.SaveFileRequest{
+		Filename: fileName,
+		Content:  content,
+	}
 
-// 	res, err := suite.service.SaveFile(context.Background(), request)
-// 	suite.Require().NotNil(res)
-// 	suite.Require().NoError(err)
+	res, err := suite.service.SaveFile(request)
+	suite.Require().NotNil(res)
+	suite.Require().NoError(err)
 
-// 	suite.Assert().Equal("Archivo 'testfile.txt' ha sido subido exitosamente", res.Response)
+	suite.Assert().Equal("Archivo 'testfile.txt' ha sido subido exitosamente", res.Response)
 
-// 	fileContent, err := os.ReadFile(filePath)
-// 	suite.Require().NotEmpty(fileContent)
-// 	suite.Require().NoError(err)
+	fileContent, err := os.ReadFile(filePath)
+	suite.Require().NotEmpty(fileContent)
+	suite.Require().NoError(err)
 
-// 	suite.Assert().Equal(content, fileContent)
-// }
+	suite.Assert().Equal(content, fileContent)
+}
 
-// func (suite *FileServiceSuite) TestSaveFileErrorContextEnded() {
-// 	fileName := "testfile.txt"
-// 	content := []byte("Hello, World!")
+func (suite *FileServiceSuite) TestReadFileSuccess() {
+	fileName := "testfile.txt"
+	filePath := filepath.Join(suite.temporaryDirectory, fileName)
+	content := []byte("Hello, World!")
 
-// 	request := &api.SaveFileRequest{
-// 		Filename: fileName,
-// 		Content:  content,
-// 	}
+	err := os.WriteFile(filePath, content, 0644)
+	assert.NoError(suite.T(), err)
 
-// 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
-// 	defer cancel()
+	response, err := suite.service.ReadFile(&api.ReadFileRequest{Filename: fileName})
+	suite.Require().NoError(err)
+	suite.Require().NotNil(response)
 
-// 	res, err := suite.service.SaveFile(ctx, request)
-// 	suite.Require().Nil(res)
-// 	suite.Require().ErrorIs(&files.ContextDoneError{}, err)
-// }
+	suite.Assert().Equal("Hello, World!", response.Content)
+}
 
-// func (suite *FileServiceSuite) TestReadFileSuccess() {
-// 	fileName := "testfile.txt"
-// 	filePath := filepath.Join(suite.temporaryDirectory, fileName)
-// 	content := []byte("Hello, World!")
+func (suite *FileServiceSuite) TestReadFileErrorFileNotFound() {
+	fileName := "testfile.txt"
 
-// 	err := os.WriteFile(filePath, content, 0644)
-// 	assert.NoError(suite.T(), err)
+	response, err := suite.service.ReadFile(&api.ReadFileRequest{Filename: fileName})
+	suite.Require().ErrorIs(&files.FileNotFoundError{}, err)
+	suite.Require().Nil(response)
+}
 
-// 	response, err := suite.service.ReadFile(context.Background(), fileName)
-// 	suite.Require().NoError(err)
-// 	suite.Require().NotNil(response)
+func (suite *FileServiceSuite) TestFindTextSuccess() {
+	fileName := "testfile.txt"
+	filePath := filepath.Join(suite.temporaryDirectory, fileName)
+	content := []byte("Hello, 1 Hello!\nHello, 2!\nHello, 3!")
 
-// 	suite.Assert().Equal("Hello, World!", response.Content)
-// }
+	err := os.WriteFile(filePath, content, 0644)
+	suite.Require().NoError(err)
 
-// func (suite *FileServiceSuite) TestReadFileErrorFileNotFound() {
-// 	fileName := "testfile.txt"
+	request := &api.FindTextRequest{
+		Filename:   fileName,
+		SearchText: "Hello",
+	}
 
-// 	response, err := suite.service.ReadFile(context.Background(), fileName)
-// 	suite.Require().ErrorIs(&files.FileNotFoundError{}, err)
-// 	suite.Require().Nil(response)
-// }
+	response, err := suite.service.FindText(request)
+	suite.Require().NoError(err)
+	suite.Require().NotNil(response)
 
-// func (suite *FileServiceSuite) TestFindTextSuccess() {
-// 	fileName := "testfile.txt"
-// 	filePath := filepath.Join(suite.temporaryDirectory, fileName)
-// 	content := []byte("Hello, 1 Hello!\nHello, 2!\nHello, 3!")
+	suite.Assert().Equal(int64(4), response.Count)
+	suite.Assert().Len(response.Lines, 3)
+	suite.Assert().Contains(response.Lines, "Hello, 1 Hello!")
+	suite.Assert().Contains(response.Lines, "Hello, 2!")
+	suite.Assert().Contains(response.Lines, "Hello, 3!")
+}
 
-// 	err := os.WriteFile(filePath, content, 0644)
-// 	suite.Require().NoError(err)
+func (suite *FileServiceSuite) TestFindTextErrorFileNotFound() {
+	request := &api.FindTextRequest{
+		Filename:   "testfile.txt",
+		SearchText: "Hello",
+	}
 
-// 	request := &api.FindTextRequest{
-// 		Filename:   fileName,
-// 		SearchText: "Hello",
-// 	}
+	response, err := suite.service.FindText(request)
+	suite.Require().ErrorIs(&files.FileNotFoundError{}, err)
+	suite.Require().Nil(response)
+}
 
-// 	response, err := suite.service.FindText(context.Background(), request)
-// 	suite.Require().NoError(err)
-// 	suite.Require().NotNil(response)
+func (suite *FileServiceSuite) TestReadAllFilesSuccess() {
+	testFiles := []files.FileContent{
+		{"file1.txt", "Hello, file 1!"},
+		{"file2.txt", "Hello, file 2!"},
+		{"file3.txt", "Hello, file 3!"},
+	}
 
-// 	suite.Assert().Equal(int64(4), response.Count)
-// 	suite.Assert().Len(response.Lines, 3)
-// 	suite.Assert().Contains(response.Lines, "Hello, 1 Hello!")
-// 	suite.Assert().Contains(response.Lines, "Hello, 2!")
-// 	suite.Assert().Contains(response.Lines, "Hello, 3!")
-// }
+	for _, file := range testFiles {
+		filePath := filepath.Join(suite.temporaryDirectory, file.Name)
+		err := os.WriteFile(filePath, []byte(file.Content), 0644)
+		suite.Require().NoError(err)
+	}
 
-// func (suite *FileServiceSuite) TestFindTextErrorFileNotFound() {
-// 	request := &api.FindTextRequest{
-// 		Filename:   "testfile.txt",
-// 		SearchText: "Hello",
-// 	}
+	response, err := suite.service.ReadAllFiles()
+	suite.Require().NoError(err)
+	suite.Require().NotNil(response)
 
-// 	response, err := suite.service.FindText(context.Background(), request)
-// 	suite.Require().ErrorIs(&files.FileNotFoundError{}, err)
-// 	suite.Require().Nil(response)
-// }
+	suite.Assert().Len(response.Content, len(testFiles))
 
-// func (suite *FileServiceSuite) TestReadAllFilesSuccess() {
-// 	testFiles := []files.FileContent{
-// 		{"file1.txt", "Hello, file 1!"},
-// 		{"file2.txt", "Hello, file 2!"},
-// 		{"file3.txt", "Hello, file 3!"},
-// 	}
+	sort.Slice(response.Content, func(i, j int) bool {
+		return response.Content[i].Name < response.Content[j].Name
+	})
 
-// 	for _, file := range testFiles {
-// 		filePath := filepath.Join(suite.temporaryDirectory, file.Name)
-// 		err := os.WriteFile(filePath, []byte(file.Content), 0644)
-// 		suite.Require().NoError(err)
-// 	}
+	for i, fileContent := range response.Content {
+		suite.Assert().Equal(testFiles[i].Name, fileContent.Name)
+		suite.Assert().Equal(testFiles[i].Content, fileContent.Content)
+	}
+}
 
-// 	response, err := suite.service.ReadAllFiles(context.Background(), nil)
-// 	suite.Require().NoError(err)
-// 	suite.Require().NotNil(response)
+func (suite *FileServiceSuite) TestReadAllFilesSuccessNoFilesFoundReturnEmptyResponse() {
+	response, err := suite.service.ReadAllFiles()
+	suite.Require().NoError(err)
+	suite.Require().NotNil(response)
 
-// 	suite.Assert().Len(response.Content, len(testFiles))
-
-// 	sort.Slice(response.Content, func(i, j int) bool {
-// 		return response.Content[i].Name < response.Content[j].Name
-// 	})
-
-// 	for i, fileContent := range response.Content {
-// 		suite.Assert().Equal(testFiles[i].Name, fileContent.Name)
-// 		suite.Assert().Equal(testFiles[i].Content, fileContent.Content)
-// 	}
-// }
-
-// func (suite *FileServiceSuite) TestReadAllFilesSuccessNoFilesFoundReturnEmptyResponse() {
-// 	response, err := suite.service.ReadAllFiles(context.Background(), nil)
-// 	suite.Require().NoError(err)
-// 	suite.Require().NotNil(response)
-
-// 	suite.Assert().Len(response.Content, 0)
-// }
+	suite.Assert().Len(response.Content, 0)
+}
