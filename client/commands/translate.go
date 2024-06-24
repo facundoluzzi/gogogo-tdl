@@ -1,8 +1,10 @@
 package commands
 
+/*
 import (
 	"bytes"
 	"encoding/json"
+	"file-editor/api"
 	"fmt"
 	"io"
 	"net/http"
@@ -19,17 +21,17 @@ const (
 	subscriptionRegion = "brazilsouth"
 )
 
-func (c *TranslateCommand) Run() error {
+func (c *TranslateCommand) Run(t api.TextEditorClient) (string, error) {
 	file, err := os.Create(c.Name)
 	if err != nil {
 		fmt.Println("Error opening file:", err)
-		return err
+		return "", err
 	}
 	defer file.Close()
 
 	contentBytes, err := io.ReadAll(file)
 	if err != nil {
-		return fmt.Errorf("failed to read file: %w", err)
+		return "", fmt.Errorf("failed to read file: %w", err)
 	}
 
 	translateText := string(contentBytes)
@@ -72,11 +74,12 @@ func (c *TranslateCommand) Run() error {
 	}
 	err = os.WriteFile(c.Name, respBody, 0644)
 	if err != nil {
-		return fmt.Errorf("failed to write new content to file: %w", err)
+		return "", fmt.Errorf("failed to write new content to file: %w", err)
 	}
-	return nil
+	return "", nil
 }
 
 func (c *TranslateCommand) Print() {
 	print("translate command", c.Name)
 }
+*/

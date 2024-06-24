@@ -2,7 +2,8 @@ package input
 
 import (
 	"errors"
-	"file-editor/commands"
+	"file-editor/api"
+	commands2 "file-editor/client/commands"
 	"flag"
 	"fmt"
 	"strings"
@@ -17,7 +18,7 @@ type Parser struct {
 }
 
 type Command interface {
-	Run() error
+	Run(api.TextEditorClient) (string, error)
 	Print()
 }
 
@@ -86,13 +87,9 @@ func parseArguments() (*CommandLineArgs, error) {
 func getCommandFromArgs(args *CommandLineArgs) (Command, error) {
 	switch args.Command {
 	case "create":
-		return &commands.CreateCommand{
+		return &commands2.CreateCommand{
 			Name:    args.Name,
 			Content: args.Body,
-		}, nil
-	case "translate":
-		return &commands.TranslateCommand{
-			Name: args.Name,
 		}, nil
 	}
 	return nil, errors.New("invalid command")

@@ -8,19 +8,20 @@ import (
 )
 
 func main() {
-	client, err := client2.NewMyClient("localhost:8080")
+	textEditor, err := client2.NewTextEditorClient("localhost:8080")
 	if err != nil {
 		panic("error creating client")
 	}
-	command, err := client.Parser.ParseFromArgs()
+	command, err := textEditor.ParseFromArgs()
 	if err == nil {
-		command.Run()
+		textEditor.ExecuteCommand(command)
+		return
 	}
 	if !errors.Is(err, input.ErrNoArgs) {
 		print("error parsing arguments")
 		return
 	}
-	err = client.Run()
+	err = textEditor.Run()
 	if err != nil {
 		fmt.Print("error running client: ", err)
 	}
