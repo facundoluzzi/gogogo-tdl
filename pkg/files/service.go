@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"encoding/binary"
+	"encoding/json"
 	"file-editor/api"
 	"fmt"
 	"log"
@@ -18,6 +19,9 @@ type Service struct {
 	Producer   chan []byte
 	Consumer   chan []byte
 	waitGroups map[string]*sync.WaitGroup
+
+	fileChans map[string]chan Command
+	mutex     sync.Mutex
 }
 
 func New(ch chan []byte) *Service {
@@ -25,6 +29,7 @@ func New(ch chan []byte) *Service {
 		Producer:   ch,
 		Consumer:   ch,
 		waitGroups: make(map[string]*sync.WaitGroup),
+		fileChans:  make(map[string]chan Command),
 	}
 
 	go service.RunConsumer()
@@ -32,9 +37,119 @@ func New(ch chan []byte) *Service {
 	return service
 }
 
-func (s *Service) ReadFile(ctx context.Context, fileName string) (*api.ReadFileResponse, error) {
+type Command struct {
+	Type         OperationType
+	Request      interface{}
+	ResponseChan chan interface{}
+}
+
+func (s *Service) Request(operationType OperationType, request interface{}) (response interface{}, err error) {
+	var filename string
+
+	switch req := request.(type) {
+	case *api.FindTextRequest:
+		filename = req.Filename
+	case *api.SaveFileRequest:
+		filename = req.Filename
+	case *api.ReadFileRequest:
+		filename = req.Filename
+	}
+
+	// Si la operación no requiere acceso exclusivo al archivo, se ejecuta directamente
+	if !operationType.RequiresExclusiveAccess() {
+		var response interface{}
+		var err error
+
+		switch operationType {
+		case Read:
+			response, err = s.ReadFile(request.(*api.ReadFileRequest))
+		case ReadAll:
+			response, err = s.ReadAllFiles()
+		default:
+			return nil, fmt.Errorf("la operacion no puede ser ejecutada sin tomar acceso exclusivo al archivo solicitado")
+		}
+
+		if err != nil {
+			return nil, err
+		}
+
+		body, err := json.Marshal(response)
+		if err != nil {
+			return nil, err
+		}
+
+		return string(body), nil
+	}
+
+	responseChan := make(chan interface{})
+
+	fileChan := s.getFileChan(filename)
+
+	commandRequest := Command{
+		Type:         operationType,
+		Request:      request,
+		ResponseChan: responseChan,
+	}
+
+	fileChan <- commandRequest
+
+	res := <-responseChan
+
+	return res, nil
+}
+
+func (s *Service) getFileChan(filename string) chan Command {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
+	fileChan, exists := s.fileChans[filename]
+	if !exists {
+		fileChan = make(chan Command)
+
+		s.fileChans[filename] = fileChan
+
+		go s.handleFileCommands(fileChan)
+	}
+
+	return fileChan
+}
+
+func (s *Service) handleFileCommands(fileChan chan Command) {
+	for command := range fileChan {
+		var response interface{}
+		var err error
+
+		switch command.Type {
+		case Save:
+			request := command.Request.(*api.SaveFileRequest)
+			response, err = s.SaveFile(request)
+		case Find:
+			request := command.Request.(*api.FindTextRequest)
+			response, err = s.FindText(request)
+		default:
+			err = fmt.Errorf("command not supported")
+		}
+
+		s.sendResponse(command.ResponseChan, response, err)
+	}
+}
+
+func (s *Service) sendResponse(responseChan chan interface{}, response interface{}, err error) {
+	if err != nil {
+		responseChan <- err
+	} else {
+		body, err := json.Marshal(response)
+		if err != nil {
+			responseChan <- err
+		} else {
+			responseChan <- string(body)
+		}
+	}
+}
+
+func (s *Service) ReadFile(request *api.ReadFileRequest) (*api.ReadFileResponse, error) {
 	// Obtenenemos la ruta del archivo
-	path, err := s.getFilePath(fileName)
+	path, err := s.getFilePath(request.Filename)
 	if err != nil {
 		return nil, err
 	}
@@ -53,7 +168,9 @@ func (s *Service) ReadFile(ctx context.Context, fileName string) (*api.ReadFileR
 }
 
 // SaveFile crea un nuevo archivo usando el contenido proporcionado en la solicitud
-func (s *Service) SaveFile(ctx context.Context, request *api.SaveFileRequest) (*api.SaveFileResponse, error) {
+func (s *Service) SaveFile(request *api.SaveFileRequest) (*api.SaveFileResponse, error) {
+	ctx := context.Background()
+
 	fileBytes := request.Content
 	fileName := request.Filename
 
@@ -111,7 +228,7 @@ func (s *Service) SaveFile(ctx context.Context, request *api.SaveFileRequest) (*
 	}, nil
 }
 
-func (s *Service) FindText(ctx context.Context, req *api.FindTextRequest) (*api.FindTextResponse, error) {
+func (s *Service) FindText(req *api.FindTextRequest) (*api.FindTextResponse, error) {
 	// Obtenemos la ruta del archivo
 	path, err := s.getFilePath(req.Filename)
 	if err != nil {
@@ -156,7 +273,7 @@ func (s *Service) FindText(ctx context.Context, req *api.FindTextRequest) (*api.
 }
 
 // ReadAllFiles lee todos los archivos en el working directory y retorna una respuesta que contiene el nombre y el contenido de cada archivo
-func (s *Service) ReadAllFiles(ctx context.Context, req *api.Empty) (*api.ReadAllFilesResponse, error) {
+func (s *Service) ReadAllFiles() (*api.ReadAllFilesResponse, error) {
 	// return s.readAllFilesSynchronously() //Para comparar la ventaja usando threads,
 	return s.readAllFilesConcurrently()
 }

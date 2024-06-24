@@ -15,3 +15,21 @@ const (
 	notLastMessage = 0
 	lastMessage    = 1
 )
+
+type OperationType string
+
+const (
+	Read    OperationType = "READ"
+	ReadAll OperationType = "READ_ALL"
+	Save    OperationType = "SAVE"
+	Find    OperationType = "FIND"
+)
+
+func (o OperationType) RequiresExclusiveAccess() bool {
+	switch o {
+	case Read, ReadAll:
+		return false
+	default:
+		return true
+	}
+}

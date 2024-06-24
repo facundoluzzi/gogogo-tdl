@@ -1,12 +1,10 @@
 package files_test
 
 import (
-	"context"
 	"os"
 	"path/filepath"
 	"sort"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
@@ -50,7 +48,7 @@ func (suite *FileServiceSuite) TestSaveFileSuccess() {
 		Content:  content,
 	}
 
-	res, err := suite.service.SaveFile(context.Background(), request)
+	res, err := suite.service.SaveFile(request)
 	suite.Require().NotNil(res)
 	suite.Require().NoError(err)
 
@@ -63,23 +61,6 @@ func (suite *FileServiceSuite) TestSaveFileSuccess() {
 	suite.Assert().Equal(content, fileContent)
 }
 
-func (suite *FileServiceSuite) TestSaveFileErrorContextEnded() {
-	fileName := "testfile.txt"
-	content := []byte("Hello, World!")
-
-	request := &api.SaveFileRequest{
-		Filename: fileName,
-		Content:  content,
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
-	defer cancel()
-
-	res, err := suite.service.SaveFile(ctx, request)
-	suite.Require().Nil(res)
-	suite.Require().ErrorIs(&files.ContextDoneError{}, err)
-}
-
 func (suite *FileServiceSuite) TestReadFileSuccess() {
 	fileName := "testfile.txt"
 	filePath := filepath.Join(suite.temporaryDirectory, fileName)
@@ -88,7 +69,7 @@ func (suite *FileServiceSuite) TestReadFileSuccess() {
 	err := os.WriteFile(filePath, content, 0644)
 	assert.NoError(suite.T(), err)
 
-	response, err := suite.service.ReadFile(context.Background(), fileName)
+	response, err := suite.service.ReadFile(&api.ReadFileRequest{Filename: fileName})
 	suite.Require().NoError(err)
 	suite.Require().NotNil(response)
 
@@ -98,7 +79,7 @@ func (suite *FileServiceSuite) TestReadFileSuccess() {
 func (suite *FileServiceSuite) TestReadFileErrorFileNotFound() {
 	fileName := "testfile.txt"
 
-	response, err := suite.service.ReadFile(context.Background(), fileName)
+	response, err := suite.service.ReadFile(&api.ReadFileRequest{Filename: fileName})
 	suite.Require().ErrorIs(&files.FileNotFoundError{}, err)
 	suite.Require().Nil(response)
 }
@@ -116,7 +97,7 @@ func (suite *FileServiceSuite) TestFindTextSuccess() {
 		SearchText: "Hello",
 	}
 
-	response, err := suite.service.FindText(context.Background(), request)
+	response, err := suite.service.FindText(request)
 	suite.Require().NoError(err)
 	suite.Require().NotNil(response)
 
@@ -133,7 +114,7 @@ func (suite *FileServiceSuite) TestFindTextErrorFileNotFound() {
 		SearchText: "Hello",
 	}
 
-	response, err := suite.service.FindText(context.Background(), request)
+	response, err := suite.service.FindText(request)
 	suite.Require().ErrorIs(&files.FileNotFoundError{}, err)
 	suite.Require().Nil(response)
 }
@@ -151,7 +132,7 @@ func (suite *FileServiceSuite) TestReadAllFilesSuccess() {
 		suite.Require().NoError(err)
 	}
 
-	response, err := suite.service.ReadAllFiles(context.Background(), nil)
+	response, err := suite.service.ReadAllFiles()
 	suite.Require().NoError(err)
 	suite.Require().NotNil(response)
 
@@ -168,7 +149,7 @@ func (suite *FileServiceSuite) TestReadAllFilesSuccess() {
 }
 
 func (suite *FileServiceSuite) TestReadAllFilesSuccessNoFilesFoundReturnEmptyResponse() {
-	response, err := suite.service.ReadAllFiles(context.Background(), nil)
+	response, err := suite.service.ReadAllFiles()
 	suite.Require().NoError(err)
 	suite.Require().NotNil(response)
 
