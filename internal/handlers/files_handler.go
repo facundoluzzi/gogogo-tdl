@@ -39,15 +39,15 @@ func (h *Handler) ReadAllFiles(ctx context.Context, req *api.Empty) (*api.ReadAl
 }
 
 func (h *Handler) ReadFile(ctx context.Context, req *api.ReadFileRequest) (*api.ReadFileResponse, error) {
-	var res *api.ReadFileResponse
-	response, err := h.FilesService.DoRequest("READ", req.Filename)
+	res := &api.ReadFileResponse{}
+	response, err := h.FilesService.DoRequest("read", req.Filename)
 	if err != nil {
 		return nil, err
 	}
 
 	b, ok := response.(string)
 	if !ok {
-		return nil, errors.New("test")
+		return nil, errors.New("response type assertion to string failed")
 	}
 
 	err = json.Unmarshal([]byte(b), res)

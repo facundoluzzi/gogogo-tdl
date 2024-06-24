@@ -5,7 +5,6 @@ import (
 	"file-editor/api"
 	"file-editor/cmd/client/commands"
 	"flag"
-	"strings"
 )
 
 const (
@@ -48,7 +47,7 @@ func (i *Parser) ParseFromArgs() (Command, error) {
 }
 
 func (i *Parser) Parse(input string) (Command, error) {
-	inputSplit := strings.Fields(input)
+	inputSplit := splitFields(input)
 	args, err := parseSlice(inputSplit)
 	if err != nil {
 		return nil, err
