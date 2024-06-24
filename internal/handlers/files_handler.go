@@ -1,10 +1,21 @@
 package handlers
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"file-editor/api"
 	"file-editor/pkg/files"
+	"fmt"
+	"io"
+	"net/http"
+	"os"
+)
+
+const (
+	apiURL             = "https://7fbf693ca6eb4dccbc232dc858de3b94.api.mockbin.io/"
+	subscriptionKey    = "06e804bb63294eed9ccf2c8a7796c2d6"
+	subscriptionRegion = "brazilsouth"
 )
 
 type FilesService interface {
@@ -76,4 +87,51 @@ func (h *Handler) ReadFile(ctx context.Context, req *api.ReadFileRequest) (*api.
 	}
 
 	return res, nil
+}
+
+func (h *Handler) TranslateFile(ctx context.Context, req *api.ReadFileRequest) (*api.ReadFileResponse, error) {
+	response, err := h.FilesService.Request(files.Read, req)
+	if err != nil {
+		return nil, err
+	}
+
+	text := &api.ReadFileResponse{}
+	if err := json.Unmarshal([]byte(response.(string)), text); err != nil {
+		return nil, err
+	}
+
+	payload := []map[string]string{
+		{"Text": text.Content},
+	}
+	// Translate text
+	payloadBytes, err := json.Marshal(payload)
+	if err != nil {
+		fmt.Printf("Error marshaling payload: %v\n", err)
+		os.Exit(1)
+	}
+
+	// Create the HTTP request
+	httpReq, err := http.NewRequest("POST", apiURL, bytes.NewBuffer(payloadBytes))
+	if err != nil {
+		fmt.Printf("Error creating request: %v\n", err)
+		os.Exit(1)
+	}
+
+	client := &http.Client{}
+	resp, err := client.Do(httpReq)
+	if err != nil {
+		fmt.Printf("Error making request: %v\n", err)
+		os.Exit(1)
+	}
+	defer resp.Body.Close()
+
+	// Read the response
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Printf("Error reading response: %v\n", err)
+		os.Exit(1)
+	}
+	text.Content = string(respBody)
+
+	return text, nil
 }
