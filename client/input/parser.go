@@ -87,7 +87,7 @@ func parseArguments() (*CommandLineArgs, error) {
 func getCommandFromArgs(args *CommandLineArgs) (Command, error) {
 	switch args.Command {
 	case "create":
-		return &commands2.CreateCommand{
+		return &commands2.SaveFileCommand{
 			Name:    args.Name,
 			Content: args.Body,
 		}, nil

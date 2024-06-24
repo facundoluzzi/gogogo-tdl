@@ -5,12 +5,12 @@ import (
 	"file-editor/api"
 )
 
-type CreateCommand struct {
+type SaveFileCommand struct {
 	Name    string
 	Content string
 }
 
-func (c *CreateCommand) Run(t api.TextEditorClient) (string, error) {
+func (c *SaveFileCommand) Run(t api.TextEditorClient) (string, error) {
 	ctx := context.Background()
 	request := api.SaveFileRequest{
 		Filename: c.Name,
@@ -24,6 +24,6 @@ func (c *CreateCommand) Run(t api.TextEditorClient) (string, error) {
 	return r.Response, nil
 }
 
-func (c *CreateCommand) Print() {
+func (c *SaveFileCommand) Print() {
 	print("create command", c.Name, c.Content)
 }
