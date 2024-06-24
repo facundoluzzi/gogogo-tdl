@@ -5,8 +5,14 @@ import (
 	"file-editor/api"
 	commands2 "file-editor/client/commands"
 	"flag"
-	"fmt"
 	"strings"
+)
+
+const (
+	SaveCommand = "save"
+	ReadCommand = "read"
+	ReadAll     = "read-all"
+	FindCommand = "find"
 )
 
 var (
@@ -54,15 +60,44 @@ func (i *Parser) Parse(input string) (Command, error) {
 }
 
 func parseSlice(input []string) (*CommandLineArgs, error) {
-	if len(input) != 3 {
-		return nil, fmt.Errorf("%w: input must be: command name body", ErrInvalidInput)
+	if len(input) == 0 {
+		return nil, ErrInvalidInput
 	}
-
-	return &CommandLineArgs{
-		Command: input[0],
-		Name:    input[1],
-		Body:    input[2],
-	}, nil
+	command := input[0]
+	switch command {
+	case SaveCommand:
+		if len(input) != 3 {
+			return nil, ErrInvalidInput
+		}
+		return &CommandLineArgs{
+			Command: command,
+			Name:    input[1],
+			Body:    input[2],
+		}, nil
+	case ReadCommand:
+		if len(input) != 2 {
+			return nil, ErrInvalidInput
+		}
+		return &CommandLineArgs{
+			Command: command,
+			Name:    input[1],
+		}, nil
+	case ReadAll:
+		if len(input) != 1 {
+			return nil, ErrInvalidInput
+		}
+		return &CommandLineArgs{
+			Command: command,
+		}, nil
+	case FindCommand:
+		if len(input) != 3 {
+			return nil, ErrInvalidInput
+		}
+		return &CommandLineArgs{
+			Command: command,
+		}, nil
+	}
+	return nil, ErrInvalidInput
 }
 
 func parseArguments() (*CommandLineArgs, error) {
@@ -78,18 +113,26 @@ func parseArguments() (*CommandLineArgs, error) {
 		return nil, ErrNoArgs
 	}
 
-	if len(args.Command) == 0 || len(args.Name) == 0 || len(args.Body) == 0 {
-		return nil, fmt.Errorf("%w: input must be: -c command -n name -b body", ErrInvalidInput)
-	}
 	return &args, nil
 }
 
 func getCommandFromArgs(args *CommandLineArgs) (Command, error) {
 	switch args.Command {
-	case "create":
+	case SaveCommand:
 		return &commands2.SaveFileCommand{
 			Name:    args.Name,
 			Content: args.Body,
+		}, nil
+	case ReadCommand:
+		return &commands2.ReadCommand{
+			Name: args.Name,
+		}, nil
+	case ReadAll:
+		return &commands2.ReadAllCommand{}, nil
+	case FindCommand:
+		return &commands2.FindCommand{
+			Name: args.Name,
+			Text: args.Body,
 		}, nil
 	}
 	return nil, errors.New("invalid command")
