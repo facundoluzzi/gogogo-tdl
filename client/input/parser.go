@@ -54,8 +54,7 @@ func (i *Parser) Parse(input string) (Command, error) {
 
 func parseSlice(input []string) (*CommandLineArgs, error) {
 	if len(input) != 3 {
-		fmt.Println("input must be command name body")
-		return nil, ErrInvalidInput
+		return nil, fmt.Errorf("%w: input must be: command name body", ErrInvalidInput)
 	}
 
 	return &CommandLineArgs{
@@ -79,8 +78,7 @@ func parseArguments() (*CommandLineArgs, error) {
 	}
 
 	if len(args.Command) == 0 || len(args.Name) == 0 || len(args.Body) == 0 {
-		fmt.Println("input must be -c command -n name -b body")
-		return nil, fmt.Errorf("invalid input")
+		return nil, fmt.Errorf("%w: input must be: -c command -n name -b body", ErrInvalidInput)
 	}
 	return &args, nil
 }

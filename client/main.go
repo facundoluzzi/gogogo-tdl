@@ -1,13 +1,10 @@
 package main
 
 import (
-	"bufio"
 	"errors"
 	client2 "file-editor/client/client"
 	"file-editor/client/input"
 	"fmt"
-	"os"
-	"strings"
 )
 
 func main() {
@@ -23,24 +20,9 @@ func main() {
 		print("error parsing arguments")
 		return
 	}
-
-	reader := bufio.NewReader(os.Stdin)
-	fmt.Print("Enter command: ")
-	input := ""
-	for input != "exit" {
-		input, err = reader.ReadString('\n')
-		if err != nil {
-			fmt.Println("Error reading command:", err)
-			return
-		}
-		input = strings.TrimSpace(input)
-		command, err := client.Parser.Parse(input)
-		if err != nil {
-			fmt.Println("Error parsing command:", err)
-			continue
-		}
-		print(command)
+	err = client.Run()
+	if err != nil {
+		fmt.Print("error running client: ", err)
 	}
-	print("closing client...")
 	return
 }

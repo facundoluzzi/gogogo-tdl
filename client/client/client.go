@@ -1,17 +1,21 @@
 package client
 
 import (
+	"bufio"
 	"file-editor/client/input"
+	"fmt"
 	"google.golang.org/grpc"
 	"log"
+	"os"
+	"strings"
 )
 
-type MyClient struct {
+type FileEditorClient struct {
 	Parser *input.Parser
 	conn   *grpc.ClientConn
 }
 
-func NewMyClient(address string) (*MyClient, error) {
+func NewMyClient(address string) (*FileEditorClient, error) {
 	// Set up a connection to the server
 	conn, err := grpc.NewClient(address, grpc.WithInsecure())
 	if err != nil {
@@ -29,7 +33,7 @@ func NewMyClient(address string) (*MyClient, error) {
 	//Create Parser
 	parser := input.Parser{}
 
-	return &MyClient{
+	return &FileEditorClient{
 		conn:   conn,
 		Parser: &parser,
 		//client: client,
@@ -37,12 +41,12 @@ func NewMyClient(address string) (*MyClient, error) {
 }
 
 // Close closes the gRPC connection
-func (c *MyClient) Close() error {
+func (c *FileEditorClient) Close() error {
 	return c.conn.Close()
 }
 
 // Example method to call a service method
-/*func (c *MyClient) DoSomething(ctx context.Context, req *pb.YourRequest) (*pb.YourResponse, error) {
+/*func (c *FileEditorClient) DoSomething(ctx context.Context, req *pb.YourRequest) (*pb.YourResponse, error) {
 	return c.client.YourMethod(ctx, req)
 }*/
 
@@ -71,3 +75,23 @@ func (c *MyClient) Close() error {
 
 	fmt.Println(file.Body)
 }*/
+
+func (c *FileEditorClient) Run() error {
+	reader := bufio.NewReader(os.Stdin)
+	fmt.Print("Enter command: ")
+	for input, err := reader.ReadString('\n'); input != "exit"; {
+		if err != nil {
+			return fmt.Errorf("error reading command: %w", err)
+		}
+		input = strings.TrimSpace(input)
+		command, err := c.Parser.Parse(input)
+		if err != nil {
+			return fmt.Errorf("error parsing command: %w", err)
+		}
+		command.Print()
+		fmt.Print("Enter command: ")
+		input, err = reader.ReadString('\n')
+	}
+	print("closing client...")
+	return nil
+}

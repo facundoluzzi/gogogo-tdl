@@ -27,5 +27,5 @@ func (c *CreateCommand) Run() error {
 }
 
 func (c *CreateCommand) Print() {
-	print(c.Name, c.Content)
+	print("create command", c.Name, c.Content)
 }

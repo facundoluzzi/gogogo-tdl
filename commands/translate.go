@@ -78,5 +78,5 @@ func (c *TranslateCommand) Run() error {
 }
 
 func (c *TranslateCommand) Print() {
-	print(c.Name)
+	print("translate command", c.Name)
 }
