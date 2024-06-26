@@ -94,6 +94,9 @@ func (s *Service) Request(operationType OperationType, request interface{}) (res
 	fileChan <- commandRequest
 
 	res := <-responseChan
+	if err, ok := res.(error); ok {
+		return nil, err
+	}
 
 	return res, nil
 }

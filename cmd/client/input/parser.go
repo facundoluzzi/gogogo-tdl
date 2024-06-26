@@ -66,13 +66,12 @@ func parseSlice(input []string) (*CommandLineArgs, error) {
 	command := input[0]
 	switch command {
 	case SaveCommand:
-		if len(input) != 3 {
+		if len(input) != 2 {
 			return nil, ErrInvalidInput
 		}
 		return &CommandLineArgs{
 			Command: command,
 			Name:    input[1],
-			Body:    input[2],
 		}, nil
 	case ReadCommand:
 		if len(input) != 2 {
@@ -129,8 +128,7 @@ func getCommandFromArgs(args *CommandLineArgs) (Command, error) {
 	switch args.Command {
 	case SaveCommand:
 		return &commands.SaveFileCommand{
-			Name:    args.Name,
-			Content: args.Body,
+			Name: args.Name,
 		}, nil
 	case ReadCommand:
 		return &commands.ReadCommand{

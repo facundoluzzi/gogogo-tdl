@@ -8,7 +8,18 @@ type HelpCommand struct {
 }
 
 func (c *HelpCommand) Run(t api.TextEditorClient) (string, error) {
-	response := "\nTo use the client the following commands are available:\n" + "read <filename>\n" + "readall\n" + "save <filename> <content>\n" + "find <filename> <text> \n" + "or write 'exit' to close the client" + "\nEnter command: "
+	response := `
+		To use the client the following commands are available:
+		-------------------------------------------------------
+		read <filename>           - Read a file
+		read-all                  - Read all files
+		save <filename>           - Save a file
+		find <filename> <text>    - Find text in a file
+		exit                      - Close the client
+		-------------------------------------------------------
+		Enter command: 
+	`
+
 	return response, nil
 }
 

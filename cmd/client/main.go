@@ -1,9 +1,7 @@
 package main
 
 import (
-	"errors"
-	client2 "file-editor/cmd/client/client"
-	"file-editor/cmd/client/input"
+	"file-editor/cmd/client/client"
 	"fmt"
 )
 
@@ -12,22 +10,13 @@ const (
 )
 
 func main() {
-	textEditor, err := client2.NewTextEditorClient(address)
+	textEditor, err := client.NewTextEditorClient(address)
 	if err != nil {
-		panic("error creating client")
+		panic("Error al crear el cliente: no se pudo establecer conexión")
 	}
-	command, err := textEditor.ParseFromArgs()
-	if err == nil {
-		textEditor.ExecuteCommand(command)
-		return
-	}
-	if !errors.Is(err, input.ErrNoArgs) {
-		print("error parsing arguments")
-		return
-	}
+
 	err = textEditor.Run()
 	if err != nil {
-		fmt.Print("error running client: ", err)
+		fmt.Println("Error al ejecutar el cliente:", err)
 	}
-	return
 }

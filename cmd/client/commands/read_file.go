@@ -3,6 +3,8 @@ package commands
 import (
 	"context"
 	"file-editor/api"
+	"fmt"
+	"strings"
 	"time"
 )
 
@@ -21,7 +23,15 @@ func (c *ReadCommand) Run(t api.TextEditorClient) (string, error) {
 		return "", err
 
 	}
-	return r.Content, nil
+
+	var response strings.Builder
+	response.WriteString("==== File Content ====\n")
+	response.WriteString(fmt.Sprintf("File: %s\n", c.Name))
+	response.WriteString("Content:\n")
+	response.WriteString(r.Content)
+	response.WriteString("\n======================\n")
+
+	return response.String(), nil
 }
 
 func (c *ReadCommand) Print() {

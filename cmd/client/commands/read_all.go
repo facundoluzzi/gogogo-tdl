@@ -3,6 +3,8 @@ package commands
 import (
 	"context"
 	"file-editor/api"
+	"fmt"
+	"strings"
 	"time"
 )
 
@@ -17,14 +19,18 @@ func (c *ReadAllCommand) Run(t api.TextEditorClient) (string, error) {
 		return "", err
 
 	}
-	response := ""
-	for _, file := range r.Content {
-		name := file.Name
-		content := file.Content
 
-		response += "file: " + name + " content: " + content + "\n"
+	var response strings.Builder
+	response.WriteString("==== Files Content ====\n\n")
+
+	for _, file := range r.Content {
+		response.WriteString(fmt.Sprintf("File: %s\n", file.Name))
+		response.WriteString(fmt.Sprintf("Content:\n%s\n", file.Content))
+		response.WriteString("----------------------\n")
 	}
-	return response, nil
+
+	response.WriteString("======================\n")
+	return response.String(), nil
 }
 
 func (c *ReadAllCommand) Print() {

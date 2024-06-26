@@ -2,8 +2,9 @@
 run-server:
 	go run ./cmd/server/main.go
 
-run-client-read-file:
-	go run ./cmd/client/main.go file1.txt
+# Comando para levantar el cliente
+run-client:
+	go run ./cmd/client/main.go
 
 # Comando para correr los tests
 test:
