@@ -27,6 +27,7 @@ const (
 	TextEditor_FindAndReplace_FullMethodName = "/editor.TextEditor/FindAndReplace"
 	TextEditor_DeleteText_FullMethodName     = "/editor.TextEditor/DeleteText"
 	TextEditor_AppendText_FullMethodName     = "/editor.TextEditor/AppendText"
+	TextEditor_DeleteFile_FullMethodName     = "/editor.TextEditor/DeleteFile"
 )
 
 // TextEditorClient is the client API for TextEditor service.
@@ -41,6 +42,7 @@ type TextEditorClient interface {
 	FindAndReplace(ctx context.Context, in *FindAndReplaceRequest, opts ...grpc.CallOption) (*FindAndReplaceResponse, error)
 	DeleteText(ctx context.Context, in *DeleteTextRequest, opts ...grpc.CallOption) (*DeleteTextResponse, error)
 	AppendText(ctx context.Context, in *AppendTextRequest, opts ...grpc.CallOption) (*AppendTextResponse, error)
+	DeleteFile(ctx context.Context, in *DeleteFileRequest, opts ...grpc.CallOption) (*DeleteFileResponse, error)
 }
 
 type textEditorClient struct {
@@ -131,6 +133,16 @@ func (c *textEditorClient) AppendText(ctx context.Context, in *AppendTextRequest
 	return out, nil
 }
 
+func (c *textEditorClient) DeleteFile(ctx context.Context, in *DeleteFileRequest, opts ...grpc.CallOption) (*DeleteFileResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeleteFileResponse)
+	err := c.cc.Invoke(ctx, TextEditor_DeleteFile_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // TextEditorServer is the server API for TextEditor service.
 // All implementations must embed UnimplementedTextEditorServer
 // for forward compatibility
@@ -143,6 +155,7 @@ type TextEditorServer interface {
 	FindAndReplace(context.Context, *FindAndReplaceRequest) (*FindAndReplaceResponse, error)
 	DeleteText(context.Context, *DeleteTextRequest) (*DeleteTextResponse, error)
 	AppendText(context.Context, *AppendTextRequest) (*AppendTextResponse, error)
+	DeleteFile(context.Context, *DeleteFileRequest) (*DeleteFileResponse, error)
 	mustEmbedUnimplementedTextEditorServer()
 }
 
@@ -173,6 +186,9 @@ func (UnimplementedTextEditorServer) DeleteText(context.Context, *DeleteTextRequ
 }
 func (UnimplementedTextEditorServer) AppendText(context.Context, *AppendTextRequest) (*AppendTextResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AppendText not implemented")
+}
+func (UnimplementedTextEditorServer) DeleteFile(context.Context, *DeleteFileRequest) (*DeleteFileResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeleteFile not implemented")
 }
 func (UnimplementedTextEditorServer) mustEmbedUnimplementedTextEditorServer() {}
 
@@ -331,6 +347,24 @@ func _TextEditor_AppendText_Handler(srv interface{}, ctx context.Context, dec fu
 	return interceptor(ctx, in, info, handler)
 }
 
+func _TextEditor_DeleteFile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteFileRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(TextEditorServer).DeleteFile(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: TextEditor_DeleteFile_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(TextEditorServer).DeleteFile(ctx, req.(*DeleteFileRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // TextEditor_ServiceDesc is the grpc.ServiceDesc for TextEditor service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -369,6 +403,10 @@ var TextEditor_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "AppendText",
 			Handler:    _TextEditor_AppendText_Handler,
+		},
+		{
+			MethodName: "DeleteFile",
+			Handler:    _TextEditor_DeleteFile_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

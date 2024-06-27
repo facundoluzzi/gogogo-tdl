@@ -133,3 +133,17 @@ func (h *Handler) AppendText(ctx context.Context, req *api.AppendTextRequest) (*
 
 	return res, nil
 }
+
+func (h *Handler) DeleteFile(ctx context.Context, req *api.DeleteFileRequest) (*api.DeleteFileResponse, error) {
+	response, err := h.FilesService.Request(files.DeleteFile, req)
+	if err != nil {
+		return nil, err
+	}
+
+	res := &api.DeleteFileResponse{}
+	if err := json.Unmarshal([]byte(response.(string)), res); err != nil {
+		return nil, err
+	}
+
+	return res, nil
+}

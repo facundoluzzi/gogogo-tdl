@@ -27,6 +27,7 @@ const (
 	Delete         OperationType = "DELETE"
 	FindAndReplace OperationType = "FIND_AND_REPLACE"
 	Append         OperationType = "APPEND"
+	DeleteFile     OperationType = "DELETE_FILE"
 )
 
 func (o OperationType) RequiresExclusiveAccess() bool {

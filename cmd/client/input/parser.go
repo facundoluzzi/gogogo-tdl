@@ -18,6 +18,7 @@ const (
 	DeleteTextCommand     = "delete"
 	FindAndReplaceCommand = "find-replace"
 	AppendCommand         = "append"
+	DeleteFileCommand     = "delete-file"
 )
 
 var (
@@ -148,6 +149,15 @@ func parseSlice(input []string) (*CommandLineArgs, error) {
 			Command: command,
 			Args:    args,
 		}, nil
+	case DeleteFileCommand:
+		if len(input) != 2 {
+			return nil, ErrInvalidInput
+		}
+		args := input[1:]
+		return &CommandLineArgs{
+			Command: command,
+			Args:    args,
+		}, nil
 	case HelpCommand:
 		if len(input) != 1 {
 			return nil, ErrInvalidInput
@@ -233,6 +243,10 @@ func getCommandFromArgs(args *CommandLineArgs) (Command, error) {
 		return &commands.AppendTextCommand{
 			Name:    args.Args[0],
 			Content: args.Args[1],
+		}, nil
+	case DeleteFileCommand:
+		return &commands.DeleteFileCommand{
+			Name: args.Args[0],
 		}, nil
 	case HelpCommand:
 		return &commands.HelpCommand{}, nil

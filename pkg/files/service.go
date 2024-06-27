@@ -61,6 +61,8 @@ func (s *Service) Request(operationType OperationType, request interface{}) (res
 		filename = req.Filename
 	case *api.AppendTextRequest:
 		filename = req.Filename
+	case *api.DeleteFileRequest:
+		filename = req.Filename
 	}
 
 	// Si la operación no requiere acceso exclusivo al archivo, se ejecuta directamente
@@ -105,6 +107,17 @@ func (s *Service) Request(operationType OperationType, request interface{}) (res
 	return res, nil
 }
 
+func (s *Service) deleteFileChan(filename string) {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
+	if _, exists := s.fileChans[filename]; !exists {
+		return
+	}
+	close(s.fileChans[filename])
+	delete(s.fileChans, filename)
+}
+
 func (s *Service) getFileChan(filename string) chan Command {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
@@ -145,6 +158,9 @@ func (s *Service) handleFileCommands(fileChan chan Command) {
 		case Append:
 			request := command.Request.(*api.AppendTextRequest)
 			response, err = s.AppendText(request)
+		case DeleteFile:
+			request := command.Request.(*api.DeleteFileRequest)
+			response, err = s.DeleteFile(request)
 		default:
 			err = fmt.Errorf("command not supported")
 		}
@@ -193,6 +209,27 @@ func (s *Service) DeleteText(request *api.DeleteTextRequest) (*api.DeleteTextRes
 	} else {
 		return &api.DeleteTextResponse{Message: "texto eliminado exitosamente"}, nil
 	}
+}
+
+func (s *Service) DeleteFile(request *api.DeleteFileRequest) (*api.DeleteFileResponse, error) {
+	path, err := s.getFilePath(request.Filename)
+	if err != nil {
+		return nil, err
+	}
+
+	err = os.Remove(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, NewFileNotFoundError("solicitud inválida, el archivo no existe")
+		}
+		return nil, err
+	}
+
+	s.deleteFileChan(request.Filename)
+
+	return &api.DeleteFileResponse{
+		Message: fmt.Sprintf("Archivo '%s' ha sido eliminado exitosamente", request.Filename),
+	}, nil
 }
 
 func (s *Service) AppendText(request *api.AppendTextRequest) (*api.AppendTextResponse, error) {

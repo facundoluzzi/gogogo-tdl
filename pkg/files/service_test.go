@@ -363,3 +363,52 @@ func (suite *FileServiceSuite) TestAppendTextErrorFileNotFound() {
 	suite.Require().ErrorIs(&files.FileNotFoundError{}, err)
 	suite.Require().Nil(response)
 }
+
+func (suite *FileServiceSuite) TestAppendTextWithoutContentSuccess() {
+	fileName := "testfile.txt"
+	filePath := filepath.Join(suite.temporaryDirectory, fileName)
+	content := []byte("Hello, World!")
+
+	err := os.WriteFile(filePath, content, 0644)
+	suite.Require().NoError(err)
+
+	request := &api.AppendTextRequest{
+		Filename: fileName,
+		Content:  "",
+	}
+
+	response, err := suite.service.AppendText(request)
+	suite.Require().NoError(err)
+	suite.Require().NotNil(response)
+
+	suite.Assert().Equal("Texto '' ha sido agregado exitosamente a 'testfile.txt'", response.Message)
+}
+
+func (suite *FileServiceSuite) TestDeleteFileSuccess() {
+	fileName := "testfile.txt"
+	filePath := filepath.Join(suite.temporaryDirectory, fileName)
+	content := []byte("Hello, World!")
+
+	err := os.WriteFile(filePath, content, 0644)
+	suite.Require().NoError(err)
+
+	request := &api.DeleteFileRequest{
+		Filename: fileName,
+	}
+
+	response, err := suite.service.DeleteFile(request)
+	suite.Require().NoError(err)
+	suite.Require().NotNil(response)
+
+	suite.Assert().Equal("Archivo 'testfile.txt' ha sido eliminado exitosamente", response.Message)
+}
+
+func (suite *FileServiceSuite) TestDeleteFileErrorFileNotFound() {
+	request := &api.DeleteFileRequest{
+		Filename: "testfile.txt",
+	}
+
+	response, err := suite.service.DeleteFile(request)
+	suite.Require().ErrorIs(&files.FileNotFoundError{}, err)
+	suite.Require().Nil(response)
+}

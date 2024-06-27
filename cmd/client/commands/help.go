@@ -20,6 +20,7 @@ func (c *HelpCommand) Run(t api.TextEditorClient) (string, error) {
 		find <filename> <text>                      - Find text in a file
 		delete <filename> <start> <length>          - Delete text length characters from start
 		find-replace <filename> <find> <replace>    - Find and replace text in a file
+		delete-file <filename>                      - Delete a file
 		exit                                        - Close the client
 		---------------------------------------------------------------------------------------
 		Enter command: 
