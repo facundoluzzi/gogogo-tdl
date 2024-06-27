@@ -26,6 +26,7 @@ const (
 	Find           OperationType = "FIND"
 	Delete         OperationType = "DELETE"
 	FindAndReplace OperationType = "FIND_AND_REPLACE"
+	Append         OperationType = "APPEND"
 )
 
 func (o OperationType) RequiresExclusiveAccess() bool {

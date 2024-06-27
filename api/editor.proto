@@ -12,6 +12,7 @@ service TextEditor {
   rpc FindText(FindTextRequest) returns (FindTextResponse);
   rpc FindAndReplace(FindAndReplaceRequest) returns (FindAndReplaceResponse);
   rpc DeleteText(DeleteTextRequest) returns (DeleteTextResponse);
+  rpc AppendText(AppendTextRequest) returns (AppendTextResponse);
 }
 
 message NewFileRequest {
@@ -73,6 +74,15 @@ message DeleteTextRequest {
 }
 
 message DeleteTextResponse {
+  string message = 1;
+}
+
+message AppendTextRequest {
+  string filename = 1;
+  string content = 2;
+}
+
+message AppendTextResponse {
   string message = 1;
 }
 

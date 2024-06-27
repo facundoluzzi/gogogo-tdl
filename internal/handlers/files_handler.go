@@ -119,3 +119,17 @@ func (h *Handler) FindAndReplace(ctx context.Context, req *api.FindAndReplaceReq
 
 	return res, nil
 }
+
+func (h *Handler) AppendText(ctx context.Context, req *api.AppendTextRequest) (*api.AppendTextResponse, error) {
+	response, err := h.FilesService.Request(files.Append, req)
+	if err != nil {
+		return nil, err
+	}
+
+	res := &api.AppendTextResponse{}
+	if err := json.Unmarshal([]byte(response.(string)), res); err != nil {
+		return nil, err
+	}
+
+	return res, nil
+}

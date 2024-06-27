@@ -332,3 +332,34 @@ func (suite *FileServiceSuite) TestNewFileWithoutContentSucces() {
 
 	suite.Assert().Equal("Archivo 'testfile.txt' ha sido creado exitosamente", response.Response)
 }
+
+func (suite *FileServiceSuite) TestAppendTextSuccess() {
+	fileName := "testfile.txt"
+	filePath := filepath.Join(suite.temporaryDirectory, fileName)
+	content := []byte("Hello, World!")
+
+	err := os.WriteFile(filePath, content, 0644)
+	suite.Require().NoError(err)
+
+	request := &api.AppendTextRequest{
+		Filename: fileName,
+		Content:  "Hello, Universe!",
+	}
+
+	response, err := suite.service.AppendText(request)
+	suite.Require().NoError(err)
+	suite.Require().NotNil(response)
+
+	suite.Assert().Equal("Texto 'Hello, Universe!' ha sido agregado exitosamente a 'testfile.txt'", response.Message)
+}
+
+func (suite *FileServiceSuite) TestAppendTextErrorFileNotFound() {
+	request := &api.AppendTextRequest{
+		Filename: "testfile.txt",
+		Content:  "Hello, Universe!",
+	}
+
+	response, err := suite.service.AppendText(request)
+	suite.Require().ErrorIs(&files.FileNotFoundError{}, err)
+	suite.Require().Nil(response)
+}

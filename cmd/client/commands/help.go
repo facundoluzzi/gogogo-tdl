@@ -16,6 +16,7 @@ func (c *HelpCommand) Run(t api.TextEditorClient) (string, error) {
 		read-all                                    - Read all files
 		edit <filename>                             - Edit a file
 		save <filename>                             - Save a file
+		append <filename> <content>                 - Append text to a file
 		find <filename> <text>                      - Find text in a file
 		delete <filename> <start> <length>          - Delete text length characters from start
 		find-replace <filename> <find> <replace>    - Find and replace text in a file

@@ -59,6 +59,8 @@ func (s *Service) Request(operationType OperationType, request interface{}) (res
 		filename = req.Filename
 	case *api.NewFileRequest:
 		filename = req.Filename
+	case *api.AppendTextRequest:
+		filename = req.Filename
 	}
 
 	// Si la operación no requiere acceso exclusivo al archivo, se ejecuta directamente
@@ -140,6 +142,9 @@ func (s *Service) handleFileCommands(fileChan chan Command) {
 		case NewFile:
 			request := command.Request.(*api.NewFileRequest)
 			response, err = s.NewFile(request)
+		case Append:
+			request := command.Request.(*api.AppendTextRequest)
+			response, err = s.AppendText(request)
 		default:
 			err = fmt.Errorf("command not supported")
 		}
@@ -188,6 +193,31 @@ func (s *Service) DeleteText(request *api.DeleteTextRequest) (*api.DeleteTextRes
 	} else {
 		return &api.DeleteTextResponse{Message: "texto eliminado exitosamente"}, nil
 	}
+}
+
+func (s *Service) AppendText(request *api.AppendTextRequest) (*api.AppendTextResponse, error) {
+	path, err := s.getFilePath(request.Filename)
+	if err != nil {
+		return nil, err
+	}
+
+	file, err := os.OpenFile(path, os.O_APPEND|os.O_WRONLY, 0644)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, NewFileNotFoundError("solicitud inválida, el archivo no existe")
+		}
+		return nil, err
+	}
+	defer file.Close()
+
+	_, err = file.WriteString(request.Content)
+	if err != nil {
+		return nil, err
+	}
+
+	return &api.AppendTextResponse{
+		Message: fmt.Sprintf("Texto '%s' ha sido agregado exitosamente a '%s'", request.Content, request.Filename),
+	}, nil
 }
 
 func (s *Service) NewFile(request *api.NewFileRequest) (*api.NewFileResponse, error) {
