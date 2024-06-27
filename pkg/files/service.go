@@ -55,6 +55,8 @@ func (s *Service) Request(operationType OperationType, request interface{}) (res
 		filename = req.Filename
 	case *api.DeleteTextRequest:
 		filename = req.Filename
+	case *api.FindAndReplaceRequest:
+		filename = req.Filename
 	}
 
 	// Si la operación no requiere acceso exclusivo al archivo, se ejecuta directamente
@@ -134,6 +136,9 @@ func (s *Service) handleFileCommands(fileChan chan Command) {
 		case Delete:
 			request := command.Request.(*api.DeleteTextRequest)
 			response, err = s.DeleteText(request)
+		case FindAndReplace:
+			request := command.Request.(*api.FindAndReplaceRequest)
+			response, err = s.FindAndReplace(request)
 		default:
 			err = fmt.Errorf("command not supported")
 		}
@@ -182,6 +187,43 @@ func (s *Service) DeleteText(request *api.DeleteTextRequest) (*api.DeleteTextRes
 	} else {
 		return &api.DeleteTextResponse{Message: "texto eliminado exitosamente"}, nil
 	}
+}
+
+func (s *Service) FindAndReplace(request *api.FindAndReplaceRequest) (*api.FindAndReplaceResponse, error) {
+	path, err := s.getFilePath(request.Filename)
+	if err != nil {
+		return nil, err
+	}
+
+	content, err := os.ReadFile(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, NewFileNotFoundError("solicitud inválida, el archivo no existe")
+		}
+
+		return nil, err
+	}
+
+	var positions []int64
+	var count int64
+
+	for i := 0; i < len(content); i++ {
+		if strings.HasPrefix(string(content[i:]), request.FindText) {
+			positions = append(positions, int64(i))
+			count++
+		}
+	}
+
+	newContent := strings.ReplaceAll(string(content), request.FindText, request.ReplaceText)
+	err = os.WriteFile(path, []byte(newContent), 0666)
+	if err != nil {
+		return nil, err
+	}
+
+	return &api.FindAndReplaceResponse{
+		Count:     count,
+		Positions: positions,
+	}, nil
 }
 
 func (s *Service) ReadFile(request *api.ReadFileRequest) (*api.ReadFileResponse, error) {

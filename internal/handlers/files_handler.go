@@ -91,3 +91,17 @@ func (h *Handler) DeleteText(ctx context.Context, req *api.DeleteTextRequest) (*
 
 	return res, nil
 }
+
+func (h *Handler) FindAndReplace(ctx context.Context, req *api.FindAndReplaceRequest) (*api.FindAndReplaceResponse, error) {
+	response, err := h.FilesService.Request(files.FindAndReplace, req)
+	if err != nil {
+		return nil, err
+	}
+
+	res := &api.FindAndReplaceResponse{}
+	if err := json.Unmarshal([]byte(response.(string)), res); err != nil {
+		return nil, err
+	}
+
+	return res, nil
+}

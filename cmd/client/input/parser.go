@@ -8,13 +8,14 @@ import (
 )
 
 const (
-	SaveCommand       = "save"
-	EditCommand       = "edit"
-	ReadCommand       = "read"
-	ReadAll           = "read-all"
-	FindCommand       = "find"
-	HelpCommand       = "help"
-	DeleteTextCommand = "delete"
+	SaveCommand           = "save"
+	EditCommand           = "edit"
+	ReadCommand           = "read"
+	ReadAll               = "read-all"
+	FindCommand           = "find"
+	HelpCommand           = "help"
+	DeleteTextCommand     = "delete"
+	FindAndReplaceCommand = "find-replace"
 )
 
 var (
@@ -118,6 +119,15 @@ func parseSlice(input []string) (*CommandLineArgs, error) {
 			Command: command,
 			Args:    args,
 		}, nil
+	case FindAndReplaceCommand:
+		if len(input) != 4 {
+			return nil, ErrInvalidInput
+		}
+		args := input[1:]
+		return &CommandLineArgs{
+			Command: command,
+			Args:    args,
+		}, nil
 	case HelpCommand:
 		if len(input) != 1 {
 			return nil, ErrInvalidInput
@@ -180,6 +190,12 @@ func getCommandFromArgs(args *CommandLineArgs) (Command, error) {
 		return &commands.FindCommand{
 			Name: args.Args[0],
 			Text: args.Args[1],
+		}, nil
+	case FindAndReplaceCommand:
+		return &commands.FindAndReplaceCommand{
+			Name:    args.Args[0],
+			Find:    args.Args[1],
+			Replace: args.Args[2],
 		}, nil
 	case HelpCommand:
 		return &commands.HelpCommand{}, nil

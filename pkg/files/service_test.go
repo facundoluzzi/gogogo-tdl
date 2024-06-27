@@ -206,7 +206,59 @@ func (suite *FileServiceSuite) TestDeleteTextErrorLengthOutOfRange() {
 	}
 
 	response, err := suite.service.DeleteText(request)
-	
+
 	suite.Require().ErrorIs(&files.OutOfRangeError{}, err)
 	suite.Require().Nil(response)
+}
+
+func (suite *FileServiceSuite) TestFindAndReplaceSuccess() {
+	fileName := "testfile.txt"
+	filePath := filepath.Join(suite.temporaryDirectory, fileName)
+	content := []byte("Hello, World!")
+
+	err := os.WriteFile(filePath, content, 0644)
+	suite.Require().NoError(err)
+
+	request := &api.FindAndReplaceRequest{
+		Filename:    fileName,
+		FindText:    "World",
+		ReplaceText: "Universe",
+	}
+
+	response, err := suite.service.FindAndReplace(request)
+	suite.Require().NoError(err)
+	suite.Require().NotNil(response)
+}
+
+func (suite *FileServiceSuite) TestFindAndReplaceErrorFileNotFound() {
+	request := &api.FindAndReplaceRequest{
+		Filename:    "testfile.txt",
+		FindText:    "World",
+		ReplaceText: "Universe",
+	}
+
+	response, err := suite.service.FindAndReplace(request)
+	suite.Require().ErrorIs(&files.FileNotFoundError{}, err)
+	suite.Require().Nil(response)
+}
+
+func (suite *FileServiceSuite) TestFindAndReplaceReturnsZeroCount() {
+	fileName := "testfile.txt"
+	filePath := filepath.Join(suite.temporaryDirectory, fileName)
+	content := []byte("Hello, World!")
+
+	err := os.WriteFile(filePath, content, 0644)
+	suite.Require().NoError(err)
+
+	request := &api.FindAndReplaceRequest{
+		Filename:    fileName,
+		FindText:    "Universe",
+		ReplaceText: "World",
+	}
+
+	response, err := suite.service.FindAndReplace(request)
+	suite.Require().NoError(err)
+	suite.Require().NotNil(response)
+	suite.Assert().Equal(int64(0), response.Count)
+	suite.Assert().Len(response.Positions, 0)
 }
