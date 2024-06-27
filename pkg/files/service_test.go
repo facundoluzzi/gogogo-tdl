@@ -155,3 +155,58 @@ func (suite *FileServiceSuite) TestReadAllFilesSuccessNoFilesFoundReturnEmptyRes
 
 	suite.Assert().Len(response.Content, 0)
 }
+
+func (suite *FileServiceSuite) TestDeleteTextSuccess() {
+	fileName := "testfile.txt"
+	filePath := filepath.Join(suite.temporaryDirectory, fileName)
+	content := []byte("Hello, World!")
+
+	err := os.WriteFile(filePath, content, 0644)
+	suite.Require().NoError(err)
+
+	request := &api.DeleteTextRequest{
+		Filename:      fileName,
+		StartPosition: 0,
+		Length:        7,
+	}
+
+	response, err := suite.service.DeleteText(request)
+	suite.Require().NoError(err)
+	suite.Require().NotNil(response)
+	suite.Assert().Equal("texto eliminado exitosamente", response.Message)
+	fileContent, err := os.ReadFile(filePath)
+	suite.Require().NoError(err)
+	suite.Assert().Equal("World!", string(fileContent))
+}
+
+func (suite *FileServiceSuite) TestDeleteTextErrorFileNotFound() {
+	request := &api.DeleteTextRequest{
+		Filename:      "testfile.txt",
+		StartPosition: 0,
+		Length:        7,
+	}
+
+	response, err := suite.service.DeleteText(request)
+	suite.Require().ErrorIs(&files.FileNotFoundError{}, err)
+	suite.Require().Nil(response)
+}
+
+func (suite *FileServiceSuite) TestDeleteTextErrorLengthOutOfRange() {
+	fileName := "testfile.txt"
+	filePath := filepath.Join(suite.temporaryDirectory, fileName)
+	content := []byte("Hello, World!")
+
+	err := os.WriteFile(filePath, content, 0644)
+	suite.Require().NoError(err)
+
+	request := &api.DeleteTextRequest{
+		Filename:      fileName,
+		StartPosition: 7,
+		Length:        15,
+	}
+
+	response, err := suite.service.DeleteText(request)
+	
+	suite.Require().ErrorIs(&files.OutOfRangeError{}, err)
+	suite.Require().Nil(response)
+}

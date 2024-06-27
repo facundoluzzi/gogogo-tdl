@@ -106,9 +106,9 @@ func (c *TextEditor) Run() error {
 	return nil
 }
 
-func (c *TextEditor) ParseFromArgs() (input.Command, error) {
-	return c.parser.ParseFromArgs()
-}
+// func (c *TextEditor) ParseFromArgs() (input.Command, error) {
+// 	return c.parser.ParseFromArgs()
+// }
 
 func (c *TextEditor) ExecuteCommand(command input.Command) {
 	response, err := command.Run(c.client)

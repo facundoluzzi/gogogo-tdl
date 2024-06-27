@@ -23,6 +23,7 @@ const (
 	ReadAll OperationType = "READ_ALL"
 	Save    OperationType = "SAVE"
 	Find    OperationType = "FIND"
+	Delete  OperationType = "DELETE"
 )
 
 func (o OperationType) RequiresExclusiveAccess() bool {

@@ -12,6 +12,23 @@ type FileNotFoundError struct {
 	*CustomError
 }
 
+type OutOfRangeError struct {
+	*CustomError
+}
+
+func NewOutOfRangeError(message string) *OutOfRangeError {
+	return &OutOfRangeError{
+		CustomError: &CustomError{
+			message: message,
+		},
+	}
+}
+
+func (f *OutOfRangeError) Is(target error) bool {
+	_, ok := target.(*OutOfRangeError)
+	return ok
+}
+
 func NewFileNotFoundError(message string) *FileNotFoundError {
 	return &FileNotFoundError{
 		CustomError: &CustomError{

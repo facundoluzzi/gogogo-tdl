@@ -77,3 +77,17 @@ func (h *Handler) ReadFile(ctx context.Context, req *api.ReadFileRequest) (*api.
 
 	return res, nil
 }
+
+func (h *Handler) DeleteText(ctx context.Context, req *api.DeleteTextRequest) (*api.DeleteTextResponse, error) {
+	response, err := h.FilesService.Request(files.Delete, req)
+	if err != nil {
+		return nil, err
+	}
+
+	res := &api.DeleteTextResponse{}
+	if err := json.Unmarshal([]byte(response.(string)), res); err != nil {
+		return nil, err
+	}
+
+	return res, nil
+}

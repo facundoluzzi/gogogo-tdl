@@ -53,6 +53,8 @@ func (s *Service) Request(operationType OperationType, request interface{}) (res
 		filename = req.Filename
 	case *api.ReadFileRequest:
 		filename = req.Filename
+	case *api.DeleteTextRequest:
+		filename = req.Filename
 	}
 
 	// Si la operación no requiere acceso exclusivo al archivo, se ejecuta directamente
@@ -129,6 +131,9 @@ func (s *Service) handleFileCommands(fileChan chan Command) {
 		case Find:
 			request := command.Request.(*api.FindTextRequest)
 			response, err = s.FindText(request)
+		case Delete:
+			request := command.Request.(*api.DeleteTextRequest)
+			response, err = s.DeleteText(request)
 		default:
 			err = fmt.Errorf("command not supported")
 		}
@@ -147,6 +152,35 @@ func (s *Service) sendResponse(responseChan chan interface{}, response interface
 		} else {
 			responseChan <- string(body)
 		}
+	}
+}
+
+func (s *Service) DeleteText(request *api.DeleteTextRequest) (*api.DeleteTextResponse, error) {
+	path, err := s.getFilePath(request.Filename)
+	if err != nil {
+		return nil, err
+	}
+
+	content, err := os.ReadFile(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, NewFileNotFoundError("solicitud inválida, el archivo no existe ")
+		}
+
+		return nil, err
+	}
+	if int(request.StartPosition) > len(content) {
+		return nil, NewOutOfRangeError("solicitud inválida, la posición de inicio está fuera de rango")
+	}
+	if int(request.StartPosition)+int(request.Length) > len(content) {
+		return nil, NewOutOfRangeError("solicitud inválida, la longitud del texto a eliminar está fuera de rango")
+	}
+	newText := append(content[:request.StartPosition], content[request.StartPosition+request.Length:]...)
+	err = os.WriteFile(path, newText, 0666)
+	if err != nil {
+		return nil, err
+	} else {
+		return &api.DeleteTextResponse{Message: "texto eliminado exitosamente"}, nil
 	}
 }
 

@@ -4,16 +4,17 @@ import (
 	"errors"
 	"file-editor/api"
 	"file-editor/cmd/client/commands"
-	"flag"
+	"strconv"
 )
 
 const (
-	SaveCommand = "save"
-	EditCommand = "edit"
-	ReadCommand = "read"
-	ReadAll     = "read-all"
-	FindCommand = "find"
-	HelpCommand = "help"
+	SaveCommand       = "save"
+	EditCommand       = "edit"
+	ReadCommand       = "read"
+	ReadAll           = "read-all"
+	FindCommand       = "find"
+	HelpCommand       = "help"
+	DeleteTextCommand = "delete"
 )
 
 var (
@@ -31,21 +32,20 @@ type Command interface {
 
 type CommandLineArgs struct {
 	Command string
-	Name    string
-	Body    string
+	Args    []string
 }
 
-func (i *Parser) ParseFromArgs() (Command, error) {
-	args, err := parseArguments()
-	if err != nil {
-		return nil, err
-	}
-	command, err := getCommandFromArgs(args)
-	if err != nil {
-		return nil, err
-	}
-	return command, nil
-}
+// func (i *Parser) ParseFromArgs() (Command, error) {
+// 	args, err := parseArguments()
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	command, err := getCommandFromArgs(args)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	return command, nil
+// }
 
 func (i *Parser) Parse(input string) (Command, error) {
 	inputSplit := splitFields(input)
@@ -66,29 +66,41 @@ func parseSlice(input []string) (*CommandLineArgs, error) {
 	}
 	command := input[0]
 	switch command {
+	case DeleteTextCommand:
+		if len(input) != 4 {
+			return nil, ErrInvalidInput
+		}
+		args := input[1:]
+		return &CommandLineArgs{
+			Command: command,
+			Args:    args,
+		}, nil
 	case SaveCommand:
 		if len(input) != 2 {
 			return nil, ErrInvalidInput
 		}
+		args := input[1:]
 		return &CommandLineArgs{
 			Command: command,
-			Name:    input[1],
+			Args:    args,
 		}, nil
 	case EditCommand:
 		if len(input) != 2 {
 			return nil, ErrInvalidInput
 		}
+		args := input[1:]
 		return &CommandLineArgs{
 			Command: command,
-			Name:    input[1],
+			Args:    args,
 		}, nil
 	case ReadCommand:
 		if len(input) != 2 {
 			return nil, ErrInvalidInput
 		}
+		args := input[1:]
 		return &CommandLineArgs{
 			Command: command,
-			Name:    input[1],
+			Args:    args,
 		}, nil
 	case ReadAll:
 		if len(input) != 1 {
@@ -101,10 +113,10 @@ func parseSlice(input []string) (*CommandLineArgs, error) {
 		if len(input) != 3 {
 			return nil, ErrInvalidInput
 		}
+		args := input[1:]
 		return &CommandLineArgs{
 			Command: command,
-			Name:    input[1],
-			Body:    input[2],
+			Args:    args,
 		}, nil
 	case HelpCommand:
 		if len(input) != 1 {
@@ -117,42 +129,57 @@ func parseSlice(input []string) (*CommandLineArgs, error) {
 	return nil, ErrInvalidInput
 }
 
-func parseArguments() (*CommandLineArgs, error) {
-	var args CommandLineArgs
+// func parseArguments() (*CommandLineArgs, error) {
+// 	// var args CommandLineArgs
 
-	flag.StringVar(&args.Command, "c", "", "Command")
-	flag.StringVar(&args.Name, "n", "", "Name")
-	flag.StringVar(&args.Body, "b", "", "Body")
+// 	// flag.StringVar(&args.Command, "c", "", "Command")
+// 	// flag.StringVar(&args.Name, "1", "", "Name")
+// 	// flag.StringVar(&args.Body, "2", "", "Body")
 
-	flag.Parse()
+// 	// flag.Parse()
 
-	if len(args.Command) == 0 {
-		return nil, ErrNoArgs
-	}
+// 	// if len(args.Command) == 0 {
+// 	// 	return nil, ErrNoArgs
+// 	// }
 
-	return &args, nil
-}
+// 	// return &args, nil
+// 	return nil, nil
+// }
 
 func getCommandFromArgs(args *CommandLineArgs) (Command, error) {
 	switch args.Command {
+	case DeleteTextCommand:
+		start, err := strconv.Atoi(args.Args[1])
+		if err != nil {
+			return nil, err
+		}
+		length, err := strconv.Atoi(args.Args[2])
+		if err != nil {
+			return nil, err
+		}
+		return &commands.DeleteTextCommand{
+			Name:   args.Args[0],
+			Start:  start,
+			Length: length,
+		}, nil
 	case SaveCommand:
 		return &commands.SaveFileCommand{
-			Name: args.Name,
+			Name: args.Args[0],
 		}, nil
 	case EditCommand:
 		return &commands.EditCommand{
-			Name: args.Name,
+			Name: args.Args[0],
 		}, nil
 	case ReadCommand:
 		return &commands.ReadCommand{
-			Name: args.Name,
+			Name: args.Args[0],
 		}, nil
 	case ReadAll:
 		return &commands.ReadAllCommand{}, nil
 	case FindCommand:
 		return &commands.FindCommand{
-			Name: args.Name,
-			Text: args.Body,
+			Name: args.Args[0],
+			Text: args.Args[1],
 		}, nil
 	case HelpCommand:
 		return &commands.HelpCommand{}, nil
