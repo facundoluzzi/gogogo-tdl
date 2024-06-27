@@ -11,6 +11,7 @@ func (c *HelpCommand) Run(t api.TextEditorClient) (string, error) {
 	response := `
 		To use the client the following commands are available:
 		---------------------------------------------------------------------------------------
+		new <filename> <content>                    - Create a new file (content optional)
 		read <filename>                             - Read a file
 		read-all                                    - Read all files
 		edit <filename>                             - Edit a file

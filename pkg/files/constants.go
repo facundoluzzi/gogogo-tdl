@@ -19,6 +19,7 @@ const (
 type OperationType string
 
 const (
+	NewFile        OperationType = "NEW"
 	Read           OperationType = "READ"
 	ReadAll        OperationType = "READ_ALL"
 	Save           OperationType = "SAVE"

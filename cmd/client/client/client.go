@@ -101,8 +101,6 @@ func (c *TextEditor) Run() error {
 		log.Printf("error closing client: %v", err)
 	}
 
-	log.Println("Text editor closed.")
-
 	return nil
 }
 

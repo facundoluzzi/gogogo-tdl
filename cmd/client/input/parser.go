@@ -8,6 +8,7 @@ import (
 )
 
 const (
+	NewFileCommand        = "new"
 	SaveCommand           = "save"
 	EditCommand           = "edit"
 	ReadCommand           = "read"
@@ -67,6 +68,15 @@ func parseSlice(input []string) (*CommandLineArgs, error) {
 	}
 	command := input[0]
 	switch command {
+	case NewFileCommand:
+		if len(input) > 3 || len(input) < 2 {
+			return nil, ErrInvalidInput
+		}
+		args := input[1:]
+		return &CommandLineArgs{
+			Command: command,
+			Args:    args,
+		}, nil
 	case DeleteTextCommand:
 		if len(input) != 4 {
 			return nil, ErrInvalidInput
@@ -197,6 +207,18 @@ func getCommandFromArgs(args *CommandLineArgs) (Command, error) {
 			Find:    args.Args[1],
 			Replace: args.Args[2],
 		}, nil
+	case NewFileCommand:
+		if len(args.Args) == 1 {
+			return &commands.NewFileCommand{
+				Name:    args.Args[0],
+				Content: "",
+			}, nil
+		} else if len(args.Args) == 2 {
+			return &commands.NewFileCommand{
+				Name:    args.Args[0],
+				Content: args.Args[1],
+			}, nil
+		}
 	case HelpCommand:
 		return &commands.HelpCommand{}, nil
 	}

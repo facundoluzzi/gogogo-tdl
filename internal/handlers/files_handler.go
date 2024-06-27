@@ -22,6 +22,20 @@ func New(filesService FilesService) *Handler {
 	}
 }
 
+func (h *Handler) NewFile(ctx context.Context, req *api.NewFileRequest) (*api.NewFileResponse, error) {
+	response, err := h.FilesService.Request(files.NewFile, req)
+	if err != nil {
+		return nil, err
+	}
+
+	res := &api.NewFileResponse{}
+	if err := json.Unmarshal([]byte(response.(string)), res); err != nil {
+		return nil, err
+	}
+
+	return res, nil
+}
+
 func (h *Handler) SaveFile(ctx context.Context, req *api.SaveFileRequest) (*api.SaveFileResponse, error) {
 	response, err := h.FilesService.Request(files.Save, req)
 	if err != nil {

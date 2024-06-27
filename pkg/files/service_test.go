@@ -262,3 +262,73 @@ func (suite *FileServiceSuite) TestFindAndReplaceReturnsZeroCount() {
 	suite.Assert().Equal(int64(0), response.Count)
 	suite.Assert().Len(response.Positions, 0)
 }
+
+func (suite *FileServiceSuite) TestFindAndReplaceSuccessMultipleReplacements() {
+	fileName := "testfile.txt"
+	filePath := filepath.Join(suite.temporaryDirectory, fileName)
+	content := []byte("Hello, World! Hello, World! Hello, World!")
+
+	err := os.WriteFile(filePath, content, 0644)
+	suite.Require().NoError(err)
+
+	request := &api.FindAndReplaceRequest{
+		Filename:    fileName,
+		FindText:    "World",
+		ReplaceText: "Universe",
+	}
+
+	response, err := suite.service.FindAndReplace(request)
+	suite.Require().NoError(err)
+	suite.Require().NotNil(response)
+	suite.Assert().Equal(int64(3), response.Count)
+	suite.Assert().Len(response.Positions, 3)
+}
+
+func (suite *FileServiceSuite) TestNewFileSuccess() {
+	fileName := "testfile.txt"
+	content := "Hello, World!"
+
+	request := &api.NewFileRequest{
+		Filename: fileName,
+		Content:  content,
+	}
+
+	response, err := suite.service.NewFile(request)
+	suite.Require().NoError(err)
+	suite.Require().NotNil(response)
+
+	suite.Assert().Equal("Archivo 'testfile.txt' ha sido creado exitosamente", response.Response)
+}
+
+func (suite *FileServiceSuite) TestNewFileErrorFileAlreadyExists() {
+	fileName := "testfile.txt"
+	filePath := filepath.Join(suite.temporaryDirectory, fileName)
+	content := []byte("Hello, World!")
+
+	err := os.WriteFile(filePath, content, 0644)
+	suite.Require().NoError(err)
+
+	request := &api.NewFileRequest{
+		Filename: fileName,
+		Content:  "Hello, World!",
+	}
+
+	response, err := suite.service.NewFile(request)
+	suite.Require().ErrorIs(&files.NewFileAlreadyExistsError{}, err)
+	suite.Require().Nil(response)
+}
+
+func (suite *FileServiceSuite) TestNewFileWithoutContentSucces() {
+
+	fileName := "testfile.txt"
+	request := &api.NewFileRequest{
+		Filename: fileName,
+		Content:  "",
+	}
+
+	response, err := suite.service.NewFile(request)
+	suite.Require().NoError(err)
+	suite.Require().NotNil(response)
+
+	suite.Assert().Equal("Archivo 'testfile.txt' ha sido creado exitosamente", response.Response)
+}

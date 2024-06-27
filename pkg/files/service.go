@@ -57,6 +57,8 @@ func (s *Service) Request(operationType OperationType, request interface{}) (res
 		filename = req.Filename
 	case *api.FindAndReplaceRequest:
 		filename = req.Filename
+	case *api.NewFileRequest:
+		filename = req.Filename
 	}
 
 	// Si la operación no requiere acceso exclusivo al archivo, se ejecuta directamente
@@ -86,7 +88,6 @@ func (s *Service) Request(operationType OperationType, request interface{}) (res
 	}
 
 	responseChan := make(chan interface{})
-
 	fileChan := s.getFileChan(filename)
 
 	commandRequest := Command{
@@ -94,14 +95,11 @@ func (s *Service) Request(operationType OperationType, request interface{}) (res
 		Request:      request,
 		ResponseChan: responseChan,
 	}
-
 	fileChan <- commandRequest
-
 	res := <-responseChan
 	if err, ok := res.(error); ok {
 		return nil, err
 	}
-
 	return res, nil
 }
 
@@ -139,6 +137,9 @@ func (s *Service) handleFileCommands(fileChan chan Command) {
 		case FindAndReplace:
 			request := command.Request.(*api.FindAndReplaceRequest)
 			response, err = s.FindAndReplace(request)
+		case NewFile:
+			request := command.Request.(*api.NewFileRequest)
+			response, err = s.NewFile(request)
 		default:
 			err = fmt.Errorf("command not supported")
 		}
@@ -187,6 +188,32 @@ func (s *Service) DeleteText(request *api.DeleteTextRequest) (*api.DeleteTextRes
 	} else {
 		return &api.DeleteTextResponse{Message: "texto eliminado exitosamente"}, nil
 	}
+}
+
+func (s *Service) NewFile(request *api.NewFileRequest) (*api.NewFileResponse, error) {
+	path, err := s.getFilePath(request.Filename)
+	if err != nil {
+		return nil, err
+	}
+
+	if _, err = os.Stat(path); err == nil {
+		return nil, NewNewFileAlreadyExistsError("solicitud inválida, el archivo ya existe")
+	}
+
+	f, err := os.Create(path)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	_, err = f.WriteString(request.Content)
+	if err != nil {
+		return nil, err
+	}
+
+	return &api.NewFileResponse{
+		Response: fmt.Sprintf("Archivo '%s' ha sido creado exitosamente", request.Filename),
+	}, nil
 }
 
 func (s *Service) FindAndReplace(request *api.FindAndReplaceRequest) (*api.FindAndReplaceResponse, error) {
