@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	apiURL             = "https://7fbf693ca6eb4dccbc232dc858de3b94.api.mockbin.io/"
+	apiURL = "https://7fbf693ca6eb4dccbc232dc858de3b94.api.mockbin.io/"
 )
 
 type FilesService interface {
@@ -158,7 +158,7 @@ func (h *Handler) DeleteFile(ctx context.Context, req *api.DeleteFileRequest) (*
 }
 
 func (h *Handler) TranslateFile(ctx context.Context, req *api.ReadFileRequest) (*api.ReadFileResponse, error) {
-	response, err := h.FilesService.Request(files.Read, req)
+	response, err := h.FilesService.Request(files.Translate, req)
 	if err != nil {
 		return nil, err
 	}

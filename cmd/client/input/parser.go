@@ -22,7 +22,6 @@ const (
 )
 
 var (
-	ErrNoArgs       = errors.New("no arguments")
 	ErrInvalidInput = errors.New("invalid input")
 )
 
@@ -38,18 +37,6 @@ type CommandLineArgs struct {
 	Command string
 	Args    []string
 }
-
-// func (i *Parser) ParseFromArgs() (Command, error) {
-// 	args, err := parseArguments()
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	command, err := getCommandFromArgs(args)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	return command, nil
-// }
 
 func (i *Parser) Parse(input string) (Command, error) {
 	inputSplit := splitFields(input)
@@ -168,23 +155,6 @@ func parseSlice(input []string) (*CommandLineArgs, error) {
 	}
 	return nil, ErrInvalidInput
 }
-
-// func parseArguments() (*CommandLineArgs, error) {
-// 	// var args CommandLineArgs
-
-// 	// flag.StringVar(&args.Command, "c", "", "Command")
-// 	// flag.StringVar(&args.Name, "1", "", "Name")
-// 	// flag.StringVar(&args.Body, "2", "", "Body")
-
-// 	// flag.Parse()
-
-// 	// if len(args.Command) == 0 {
-// 	// 	return nil, ErrNoArgs
-// 	// }
-
-// 	// return &args, nil
-// 	return nil, nil
-// }
 
 func getCommandFromArgs(args *CommandLineArgs) (Command, error) {
 	switch args.Command {
