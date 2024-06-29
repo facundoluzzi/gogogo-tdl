@@ -14,8 +14,6 @@ import (
 
 const (
 	apiURL             = "https://7fbf693ca6eb4dccbc232dc858de3b94.api.mockbin.io/"
-	subscriptionKey    = "06e804bb63294eed9ccf2c8a7796c2d6"
-	subscriptionRegion = "brazilsouth"
 )
 
 type FilesService interface {
@@ -31,6 +29,20 @@ func New(filesService FilesService) *Handler {
 	return &Handler{
 		FilesService: filesService,
 	}
+}
+
+func (h *Handler) NewFile(ctx context.Context, req *api.NewFileRequest) (*api.NewFileResponse, error) {
+	response, err := h.FilesService.Request(files.NewFile, req)
+	if err != nil {
+		return nil, err
+	}
+
+	res := &api.NewFileResponse{}
+	if err := json.Unmarshal([]byte(response.(string)), res); err != nil {
+		return nil, err
+	}
+
+	return res, nil
 }
 
 func (h *Handler) SaveFile(ctx context.Context, req *api.SaveFileRequest) (*api.SaveFileResponse, error) {
@@ -82,6 +94,62 @@ func (h *Handler) ReadFile(ctx context.Context, req *api.ReadFileRequest) (*api.
 	}
 
 	res := &api.ReadFileResponse{}
+	if err := json.Unmarshal([]byte(response.(string)), res); err != nil {
+		return nil, err
+	}
+
+	return res, nil
+}
+
+func (h *Handler) DeleteText(ctx context.Context, req *api.DeleteTextRequest) (*api.DeleteTextResponse, error) {
+	response, err := h.FilesService.Request(files.Delete, req)
+	if err != nil {
+		return nil, err
+	}
+
+	res := &api.DeleteTextResponse{}
+	if err := json.Unmarshal([]byte(response.(string)), res); err != nil {
+		return nil, err
+	}
+
+	return res, nil
+}
+
+func (h *Handler) FindAndReplace(ctx context.Context, req *api.FindAndReplaceRequest) (*api.FindAndReplaceResponse, error) {
+	response, err := h.FilesService.Request(files.FindAndReplace, req)
+	if err != nil {
+		return nil, err
+	}
+
+	res := &api.FindAndReplaceResponse{}
+	if err := json.Unmarshal([]byte(response.(string)), res); err != nil {
+		return nil, err
+	}
+
+	return res, nil
+}
+
+func (h *Handler) AppendText(ctx context.Context, req *api.AppendTextRequest) (*api.AppendTextResponse, error) {
+	response, err := h.FilesService.Request(files.Append, req)
+	if err != nil {
+		return nil, err
+	}
+
+	res := &api.AppendTextResponse{}
+	if err := json.Unmarshal([]byte(response.(string)), res); err != nil {
+		return nil, err
+	}
+
+	return res, nil
+}
+
+func (h *Handler) DeleteFile(ctx context.Context, req *api.DeleteFileRequest) (*api.DeleteFileResponse, error) {
+	response, err := h.FilesService.Request(files.DeleteFile, req)
+	if err != nil {
+		return nil, err
+	}
+
+	res := &api.DeleteFileResponse{}
 	if err := json.Unmarshal([]byte(response.(string)), res); err != nil {
 		return nil, err
 	}

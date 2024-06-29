@@ -5,11 +5,25 @@ package editor;
 option go_package = "./;api";
 
 service TextEditor {
+  rpc NewFile(NewFileRequest) returns (NewFileResponse);
   rpc ReadFile(ReadFileRequest) returns (ReadFileResponse);
   rpc ReadAllFiles(Empty) returns (ReadAllFilesResponse);
   rpc SaveFile(SaveFileRequest) returns (SaveFileResponse);
   rpc FindText(FindTextRequest) returns (FindTextResponse);
+  rpc FindAndReplace(FindAndReplaceRequest) returns (FindAndReplaceResponse);
+  rpc DeleteText(DeleteTextRequest) returns (DeleteTextResponse);
+  rpc AppendText(AppendTextRequest) returns (AppendTextResponse);
+  rpc DeleteFile(DeleteFileRequest) returns (DeleteFileResponse);
   rpc TranslateText(TranslateFileRequest) returns (TranslateFileResponse);
+}
+
+message NewFileRequest {
+  string filename = 1;
+  string content = 2;
+}
+
+message NewFileResponse {
+  string response = 1;
 }
 
 message ReadFileRequest {
@@ -50,6 +64,44 @@ message FindTextResponse {
 message ReadAllFilesResponse {
   repeated FileContent content = 1;
   float response_time = 2;
+}
+
+message FindAndReplaceRequest {
+  string filename = 1;
+  string find_text = 2;
+  string replace_text = 3;
+}
+
+message FindAndReplaceResponse {
+  int64 count = 1;
+  repeated int64 positions = 2;
+}
+
+message DeleteTextRequest {
+  string filename = 1;
+  int32 start_position = 2;
+  int32 length = 3;
+}
+
+message DeleteTextResponse {
+  string message = 1;
+}
+
+message AppendTextRequest {
+  string filename = 1;
+  string content = 2;
+}
+
+message AppendTextResponse {
+  string message = 1;
+}
+
+message DeleteFileRequest {
+  string filename = 1;
+}
+
+message DeleteFileResponse {
+  string message = 1;
 }
 
 message Empty {}

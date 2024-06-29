@@ -155,3 +155,260 @@ func (suite *FileServiceSuite) TestReadAllFilesSuccessNoFilesFoundReturnEmptyRes
 
 	suite.Assert().Len(response.Content, 0)
 }
+
+func (suite *FileServiceSuite) TestDeleteTextSuccess() {
+	fileName := "testfile.txt"
+	filePath := filepath.Join(suite.temporaryDirectory, fileName)
+	content := []byte("Hello, World!")
+
+	err := os.WriteFile(filePath, content, 0644)
+	suite.Require().NoError(err)
+
+	request := &api.DeleteTextRequest{
+		Filename:      fileName,
+		StartPosition: 0,
+		Length:        7,
+	}
+
+	response, err := suite.service.DeleteText(request)
+	suite.Require().NoError(err)
+	suite.Require().NotNil(response)
+	suite.Assert().Equal("texto eliminado exitosamente", response.Message)
+	fileContent, err := os.ReadFile(filePath)
+	suite.Require().NoError(err)
+	suite.Assert().Equal("World!", string(fileContent))
+}
+
+func (suite *FileServiceSuite) TestDeleteTextErrorFileNotFound() {
+	request := &api.DeleteTextRequest{
+		Filename:      "testfile.txt",
+		StartPosition: 0,
+		Length:        7,
+	}
+
+	response, err := suite.service.DeleteText(request)
+	suite.Require().ErrorIs(&files.FileNotFoundError{}, err)
+	suite.Require().Nil(response)
+}
+
+func (suite *FileServiceSuite) TestDeleteTextErrorLengthOutOfRange() {
+	fileName := "testfile.txt"
+	filePath := filepath.Join(suite.temporaryDirectory, fileName)
+	content := []byte("Hello, World!")
+
+	err := os.WriteFile(filePath, content, 0644)
+	suite.Require().NoError(err)
+
+	request := &api.DeleteTextRequest{
+		Filename:      fileName,
+		StartPosition: 7,
+		Length:        15,
+	}
+
+	response, err := suite.service.DeleteText(request)
+
+	suite.Require().ErrorIs(&files.OutOfRangeError{}, err)
+	suite.Require().Nil(response)
+}
+
+func (suite *FileServiceSuite) TestFindAndReplaceSuccess() {
+	fileName := "testfile.txt"
+	filePath := filepath.Join(suite.temporaryDirectory, fileName)
+	content := []byte("Hello, World!")
+
+	err := os.WriteFile(filePath, content, 0644)
+	suite.Require().NoError(err)
+
+	request := &api.FindAndReplaceRequest{
+		Filename:    fileName,
+		FindText:    "World",
+		ReplaceText: "Universe",
+	}
+
+	response, err := suite.service.FindAndReplace(request)
+	suite.Require().NoError(err)
+	suite.Require().NotNil(response)
+}
+
+func (suite *FileServiceSuite) TestFindAndReplaceErrorFileNotFound() {
+	request := &api.FindAndReplaceRequest{
+		Filename:    "testfile.txt",
+		FindText:    "World",
+		ReplaceText: "Universe",
+	}
+
+	response, err := suite.service.FindAndReplace(request)
+	suite.Require().ErrorIs(&files.FileNotFoundError{}, err)
+	suite.Require().Nil(response)
+}
+
+func (suite *FileServiceSuite) TestFindAndReplaceReturnsZeroCount() {
+	fileName := "testfile.txt"
+	filePath := filepath.Join(suite.temporaryDirectory, fileName)
+	content := []byte("Hello, World!")
+
+	err := os.WriteFile(filePath, content, 0644)
+	suite.Require().NoError(err)
+
+	request := &api.FindAndReplaceRequest{
+		Filename:    fileName,
+		FindText:    "Universe",
+		ReplaceText: "World",
+	}
+
+	response, err := suite.service.FindAndReplace(request)
+	suite.Require().NoError(err)
+	suite.Require().NotNil(response)
+	suite.Assert().Equal(int64(0), response.Count)
+	suite.Assert().Len(response.Positions, 0)
+}
+
+func (suite *FileServiceSuite) TestFindAndReplaceSuccessMultipleReplacements() {
+	fileName := "testfile.txt"
+	filePath := filepath.Join(suite.temporaryDirectory, fileName)
+	content := []byte("Hello, World! Hello, World! Hello, World!")
+
+	err := os.WriteFile(filePath, content, 0644)
+	suite.Require().NoError(err)
+
+	request := &api.FindAndReplaceRequest{
+		Filename:    fileName,
+		FindText:    "World",
+		ReplaceText: "Universe",
+	}
+
+	response, err := suite.service.FindAndReplace(request)
+	suite.Require().NoError(err)
+	suite.Require().NotNil(response)
+	suite.Assert().Equal(int64(3), response.Count)
+	suite.Assert().Len(response.Positions, 3)
+}
+
+func (suite *FileServiceSuite) TestNewFileSuccess() {
+	fileName := "testfile.txt"
+	content := "Hello, World!"
+
+	request := &api.NewFileRequest{
+		Filename: fileName,
+		Content:  content,
+	}
+
+	response, err := suite.service.NewFile(request)
+	suite.Require().NoError(err)
+	suite.Require().NotNil(response)
+
+	suite.Assert().Equal("Archivo 'testfile.txt' ha sido creado exitosamente", response.Response)
+}
+
+func (suite *FileServiceSuite) TestNewFileErrorFileAlreadyExists() {
+	fileName := "testfile.txt"
+	filePath := filepath.Join(suite.temporaryDirectory, fileName)
+	content := []byte("Hello, World!")
+
+	err := os.WriteFile(filePath, content, 0644)
+	suite.Require().NoError(err)
+
+	request := &api.NewFileRequest{
+		Filename: fileName,
+		Content:  "Hello, World!",
+	}
+
+	response, err := suite.service.NewFile(request)
+	suite.Require().ErrorIs(&files.NewFileAlreadyExistsError{}, err)
+	suite.Require().Nil(response)
+}
+
+func (suite *FileServiceSuite) TestNewFileWithoutContentSucces() {
+
+	fileName := "testfile.txt"
+	request := &api.NewFileRequest{
+		Filename: fileName,
+		Content:  "",
+	}
+
+	response, err := suite.service.NewFile(request)
+	suite.Require().NoError(err)
+	suite.Require().NotNil(response)
+
+	suite.Assert().Equal("Archivo 'testfile.txt' ha sido creado exitosamente", response.Response)
+}
+
+func (suite *FileServiceSuite) TestAppendTextSuccess() {
+	fileName := "testfile.txt"
+	filePath := filepath.Join(suite.temporaryDirectory, fileName)
+	content := []byte("Hello, World!")
+
+	err := os.WriteFile(filePath, content, 0644)
+	suite.Require().NoError(err)
+
+	request := &api.AppendTextRequest{
+		Filename: fileName,
+		Content:  "Hello, Universe!",
+	}
+
+	response, err := suite.service.AppendText(request)
+	suite.Require().NoError(err)
+	suite.Require().NotNil(response)
+
+	suite.Assert().Equal("Texto 'Hello, Universe!' ha sido agregado exitosamente a 'testfile.txt'", response.Message)
+}
+
+func (suite *FileServiceSuite) TestAppendTextErrorFileNotFound() {
+	request := &api.AppendTextRequest{
+		Filename: "testfile.txt",
+		Content:  "Hello, Universe!",
+	}
+
+	response, err := suite.service.AppendText(request)
+	suite.Require().ErrorIs(&files.FileNotFoundError{}, err)
+	suite.Require().Nil(response)
+}
+
+func (suite *FileServiceSuite) TestAppendTextWithoutContentSuccess() {
+	fileName := "testfile.txt"
+	filePath := filepath.Join(suite.temporaryDirectory, fileName)
+	content := []byte("Hello, World!")
+
+	err := os.WriteFile(filePath, content, 0644)
+	suite.Require().NoError(err)
+
+	request := &api.AppendTextRequest{
+		Filename: fileName,
+		Content:  "",
+	}
+
+	response, err := suite.service.AppendText(request)
+	suite.Require().NoError(err)
+	suite.Require().NotNil(response)
+
+	suite.Assert().Equal("Texto '' ha sido agregado exitosamente a 'testfile.txt'", response.Message)
+}
+
+func (suite *FileServiceSuite) TestDeleteFileSuccess() {
+	fileName := "testfile.txt"
+	filePath := filepath.Join(suite.temporaryDirectory, fileName)
+	content := []byte("Hello, World!")
+
+	err := os.WriteFile(filePath, content, 0644)
+	suite.Require().NoError(err)
+
+	request := &api.DeleteFileRequest{
+		Filename: fileName,
+	}
+
+	response, err := suite.service.DeleteFile(request)
+	suite.Require().NoError(err)
+	suite.Require().NotNil(response)
+
+	suite.Assert().Equal("Archivo 'testfile.txt' ha sido eliminado exitosamente", response.Message)
+}
+
+func (suite *FileServiceSuite) TestDeleteFileErrorFileNotFound() {
+	request := &api.DeleteFileRequest{
+		Filename: "testfile.txt",
+	}
+
+	response, err := suite.service.DeleteFile(request)
+	suite.Require().ErrorIs(&files.FileNotFoundError{}, err)
+	suite.Require().Nil(response)
+}

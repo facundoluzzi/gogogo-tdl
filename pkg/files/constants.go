@@ -19,10 +19,15 @@ const (
 type OperationType string
 
 const (
-	Read    OperationType = "READ"
-	ReadAll OperationType = "READ_ALL"
-	Save    OperationType = "SAVE"
-	Find    OperationType = "FIND"
+	NewFile        OperationType = "NEW"
+	Read           OperationType = "READ"
+	ReadAll        OperationType = "READ_ALL"
+	Save           OperationType = "SAVE"
+	Find           OperationType = "FIND"
+	Delete         OperationType = "DELETE"
+	FindAndReplace OperationType = "FIND_AND_REPLACE"
+	Append         OperationType = "APPEND"
+	DeleteFile     OperationType = "DELETE_FILE"
 )
 
 func (o OperationType) RequiresExclusiveAccess() bool {

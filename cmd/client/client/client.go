@@ -5,17 +5,21 @@ import (
 	"file-editor/api"
 	"file-editor/cmd/client/input"
 	"fmt"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 	"log"
 	"os"
+	"os/exec"
+	"runtime"
 	"strings"
+
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 type TextEditor struct {
 	parser *input.Parser
 	conn   *grpc.ClientConn
 	client api.TextEditorClient
+	reader *bufio.Reader
 }
 
 func NewTextEditorClient(address string) (*TextEditor, error) {
@@ -26,20 +30,23 @@ func NewTextEditorClient(address string) (*TextEditor, error) {
 			grpc.MaxCallSendMsgSize(100*1024*1024), // 100 MB
 		),
 	}
+
 	conn, err := grpc.NewClient(address, opts...)
 	if err != nil {
 		return nil, err
 	}
-	if err != nil {
-		log.Fatalf("did not connect: %v", err)
-	}
 
 	c := api.NewTextEditorClient(conn)
+
 	parser := input.Parser{}
+
+	reader := bufio.NewReader(os.Stdin)
+
 	return &TextEditor{
 		conn:   conn,
 		parser: &parser,
 		client: c,
+		reader: reader,
 	}, nil
 }
 
@@ -49,39 +56,57 @@ func (c *TextEditor) Close() error {
 }
 
 func (c *TextEditor) Run() error {
-	reader := bufio.NewReader(os.Stdin)
-	fmt.Println("Enter command or write 'help' to see available command")
 	for {
-		input, err := reader.ReadString('\n')
+		clearScreen()
+
+		fmt.Println("==== Text Editor ====")
+		fmt.Println("Enter command or write 'help' to see available commands")
+		fmt.Println("=====================")
+
+		input, err := c.reader.ReadString('\n')
 		if err != nil {
-			return fmt.Errorf("error reading command: %w", err)
+			c.handleCommandError(err)
+			continue
 		}
+
 		input = strings.TrimSpace(input)
 		if input == "exit" {
-			fmt.Println("Exiting...")
 			break
 		}
+
 		command, err := c.parser.Parse(input)
 		if err != nil {
-			return fmt.Errorf("error parsing command: %w", err)
+			c.handleCommandError(err)
+			continue
 		}
-		fmt.Println("Running command...")
+
+		fmt.Print("Running command...\n")
+
 		response, err := command.Run(c.client)
 		if err != nil {
-			return fmt.Errorf("error running command: %w", err)
-
+			c.handleCommandError(err)
+			continue
 		}
+
 		fmt.Println(response)
-		fmt.Print("Enter command: ")
+
+		fmt.Print("Press Enter to continue...\n\n\n")
+
+		_, _ = c.reader.ReadString('\n')
 	}
+
 	fmt.Println("Closing client...")
-	c.conn.Close()
+
+	if err := c.conn.Close(); err != nil {
+		log.Printf("error closing client: %v", err)
+	}
+
 	return nil
 }
 
-func (c *TextEditor) ParseFromArgs() (input.Command, error) {
-	return c.parser.ParseFromArgs()
-}
+// func (c *TextEditor) ParseFromArgs() (input.Command, error) {
+// 	return c.parser.ParseFromArgs()
+// }
 
 func (c *TextEditor) ExecuteCommand(command input.Command) {
 	response, err := command.Run(c.client)
@@ -89,6 +114,31 @@ func (c *TextEditor) ExecuteCommand(command input.Command) {
 		fmt.Println("error running command:", err)
 		return
 	}
+
 	fmt.Println(response)
+
 	c.conn.Close()
+}
+
+func (c *TextEditor) handleCommandError(err error) {
+	log.Printf("No se pudo ejecutar el comando solicitado, intente nuevamente: \nERROR: %v\n", err)
+	fmt.Println("=====================")
+	fmt.Print("Press Enter to continue...\n\n\n")
+
+	_, _ = c.reader.ReadString('\n')
+}
+
+// clearScreen cleans the terminal
+func clearScreen() {
+	var cmd *exec.Cmd
+
+	if runtime.GOOS == "windows" {
+		cmd = exec.Command("cmd", "/c", "cls")
+	} else {
+		cmd = exec.Command("clear")
+	}
+
+	cmd.Stdout = os.Stdout
+
+	_ = cmd.Run()
 }

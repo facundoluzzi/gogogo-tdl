@@ -53,6 +53,16 @@ func (s *Service) Request(operationType OperationType, request interface{}) (res
 		filename = req.Filename
 	case *api.ReadFileRequest:
 		filename = req.Filename
+	case *api.DeleteTextRequest:
+		filename = req.Filename
+	case *api.FindAndReplaceRequest:
+		filename = req.Filename
+	case *api.NewFileRequest:
+		filename = req.Filename
+	case *api.AppendTextRequest:
+		filename = req.Filename
+	case *api.DeleteFileRequest:
+		filename = req.Filename
 	}
 
 	// Si la operación no requiere acceso exclusivo al archivo, se ejecuta directamente
@@ -82,7 +92,6 @@ func (s *Service) Request(operationType OperationType, request interface{}) (res
 	}
 
 	responseChan := make(chan interface{})
-
 	fileChan := s.getFileChan(filename)
 
 	commandRequest := Command{
@@ -90,12 +99,23 @@ func (s *Service) Request(operationType OperationType, request interface{}) (res
 		Request:      request,
 		ResponseChan: responseChan,
 	}
-
 	fileChan <- commandRequest
-
 	res := <-responseChan
-
+	if err, ok := res.(error); ok {
+		return nil, err
+	}
 	return res, nil
+}
+
+func (s *Service) deleteFileChan(filename string) {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
+	if _, exists := s.fileChans[filename]; !exists {
+		return
+	}
+	close(s.fileChans[filename])
+	delete(s.fileChans, filename)
 }
 
 func (s *Service) getFileChan(filename string) chan Command {
@@ -126,6 +146,21 @@ func (s *Service) handleFileCommands(fileChan chan Command) {
 		case Find:
 			request := command.Request.(*api.FindTextRequest)
 			response, err = s.FindText(request)
+		case Delete:
+			request := command.Request.(*api.DeleteTextRequest)
+			response, err = s.DeleteText(request)
+		case FindAndReplace:
+			request := command.Request.(*api.FindAndReplaceRequest)
+			response, err = s.FindAndReplace(request)
+		case NewFile:
+			request := command.Request.(*api.NewFileRequest)
+			response, err = s.NewFile(request)
+		case Append:
+			request := command.Request.(*api.AppendTextRequest)
+			response, err = s.AppendText(request)
+		case DeleteFile:
+			request := command.Request.(*api.DeleteFileRequest)
+			response, err = s.DeleteFile(request)
 		default:
 			err = fmt.Errorf("command not supported")
 		}
@@ -145,6 +180,144 @@ func (s *Service) sendResponse(responseChan chan interface{}, response interface
 			responseChan <- string(body)
 		}
 	}
+}
+
+func (s *Service) DeleteText(request *api.DeleteTextRequest) (*api.DeleteTextResponse, error) {
+	path, err := s.getFilePath(request.Filename)
+	if err != nil {
+		return nil, err
+	}
+
+	content, err := os.ReadFile(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, NewFileNotFoundError("solicitud inválida, el archivo no existe ")
+		}
+
+		return nil, err
+	}
+	if int(request.StartPosition) > len(content) {
+		return nil, NewOutOfRangeError("solicitud inválida, la posición de inicio está fuera de rango")
+	}
+	if int(request.StartPosition)+int(request.Length) > len(content) {
+		return nil, NewOutOfRangeError("solicitud inválida, la longitud del texto a eliminar está fuera de rango")
+	}
+	newText := append(content[:request.StartPosition], content[request.StartPosition+request.Length:]...)
+	err = os.WriteFile(path, newText, 0666)
+	if err != nil {
+		return nil, err
+	} else {
+		return &api.DeleteTextResponse{Message: "texto eliminado exitosamente"}, nil
+	}
+}
+
+func (s *Service) DeleteFile(request *api.DeleteFileRequest) (*api.DeleteFileResponse, error) {
+	path, err := s.getFilePath(request.Filename)
+	if err != nil {
+		return nil, err
+	}
+
+	err = os.Remove(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, NewFileNotFoundError("solicitud inválida, el archivo no existe")
+		}
+		return nil, err
+	}
+
+	s.deleteFileChan(request.Filename)
+
+	return &api.DeleteFileResponse{
+		Message: fmt.Sprintf("Archivo '%s' ha sido eliminado exitosamente", request.Filename),
+	}, nil
+}
+
+func (s *Service) AppendText(request *api.AppendTextRequest) (*api.AppendTextResponse, error) {
+	path, err := s.getFilePath(request.Filename)
+	if err != nil {
+		return nil, err
+	}
+
+	file, err := os.OpenFile(path, os.O_APPEND|os.O_WRONLY, 0644)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, NewFileNotFoundError("solicitud inválida, el archivo no existe")
+		}
+		return nil, err
+	}
+	defer file.Close()
+
+	_, err = file.WriteString(request.Content)
+	if err != nil {
+		return nil, err
+	}
+
+	return &api.AppendTextResponse{
+		Message: fmt.Sprintf("Texto '%s' ha sido agregado exitosamente a '%s'", request.Content, request.Filename),
+	}, nil
+}
+
+func (s *Service) NewFile(request *api.NewFileRequest) (*api.NewFileResponse, error) {
+	path, err := s.getFilePath(request.Filename)
+	if err != nil {
+		return nil, err
+	}
+
+	if _, err = os.Stat(path); err == nil {
+		return nil, NewNewFileAlreadyExistsError("solicitud inválida, el archivo ya existe")
+	}
+
+	f, err := os.Create(path)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	_, err = f.WriteString(request.Content)
+	if err != nil {
+		return nil, err
+	}
+
+	return &api.NewFileResponse{
+		Response: fmt.Sprintf("Archivo '%s' ha sido creado exitosamente", request.Filename),
+	}, nil
+}
+
+func (s *Service) FindAndReplace(request *api.FindAndReplaceRequest) (*api.FindAndReplaceResponse, error) {
+	path, err := s.getFilePath(request.Filename)
+	if err != nil {
+		return nil, err
+	}
+
+	content, err := os.ReadFile(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, NewFileNotFoundError("solicitud inválida, el archivo no existe")
+		}
+
+		return nil, err
+	}
+
+	var positions []int64
+	var count int64
+
+	for i := 0; i < len(content); i++ {
+		if strings.HasPrefix(string(content[i:]), request.FindText) {
+			positions = append(positions, int64(i))
+			count++
+		}
+	}
+
+	newContent := strings.ReplaceAll(string(content), request.FindText, request.ReplaceText)
+	err = os.WriteFile(path, []byte(newContent), 0666)
+	if err != nil {
+		return nil, err
+	}
+
+	return &api.FindAndReplaceResponse{
+		Count:     count,
+		Positions: positions,
+	}, nil
 }
 
 func (s *Service) ReadFile(request *api.ReadFileRequest) (*api.ReadFileResponse, error) {

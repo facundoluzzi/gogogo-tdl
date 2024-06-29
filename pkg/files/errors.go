@@ -12,6 +12,40 @@ type FileNotFoundError struct {
 	*CustomError
 }
 
+type NewFileAlreadyExistsError struct {
+	*CustomError
+}
+
+type OutOfRangeError struct {
+	*CustomError
+}
+
+func NewOutOfRangeError(message string) *OutOfRangeError {
+	return &OutOfRangeError{
+		CustomError: &CustomError{
+			message: message,
+		},
+	}
+}
+
+func (f *OutOfRangeError) Is(target error) bool {
+	_, ok := target.(*OutOfRangeError)
+	return ok
+}
+
+func NewNewFileAlreadyExistsError(message string) *NewFileAlreadyExistsError {
+	return &NewFileAlreadyExistsError{
+		CustomError: &CustomError{
+			message: message,
+		},
+	}
+}
+
+func (f *NewFileAlreadyExistsError) Is(target error) bool {
+	_, ok := target.(*NewFileAlreadyExistsError)
+	return ok
+}
+
 func NewFileNotFoundError(message string) *FileNotFoundError {
 	return &FileNotFoundError{
 		CustomError: &CustomError{
