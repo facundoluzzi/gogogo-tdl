@@ -11,6 +11,8 @@ const lastMessageHeaderIndex = 0
 const fileNameHeaderStartIndex = 1
 const fileNameHeaderEndIndex = 5
 
+const translateServiceURL = "https://e720069868034e7a803e32c2c41d3dab.api.mockbin.io/"
+
 const (
 	notLastMessage = 0
 	lastMessage    = 1

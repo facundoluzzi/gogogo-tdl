@@ -469,45 +469,35 @@ func (s *Service) TranslateFile(req *api.TranslateFileRequest) (*api.TranslateFi
 		return nil, err
 	}
 
-	// create body
-	payload := []map[string]string{
-		{
-			"contents":       string(content),
-			"sourceLanguage": "es",
-			"targetLanguage": "en",
-		},
-	}
-	// serialize payload
-	payloadBytes, err := json.Marshal(payload)
-	if err != nil {
-		fmt.Printf("Error marshaling payload: %v\n", err)
-		os.Exit(1)
+	body := map[string]string{
+		"contents":       string(content),
+		"sourceLanguage": "es",
+		"targetLanguage": "es",
 	}
 
-	// Create the HTTP request
-	httpReq, err := http.NewRequest("POST", "https://eec64fd8dabd4dfb8c180c5b47905cd5.api.mockbin.io/", bytes.NewReader(payloadBytes))
+	payload, err := json.Marshal(body)
 	if err != nil {
-		fmt.Printf("Error creating request: %v\n", err)
-		os.Exit(1)
+		return nil, fmt.Errorf("error serializing body: %w", err)
 	}
 
-	// send the request
-	client := &http.Client{}
-	resp, err := client.Do(httpReq)
+	httpRequest, err := http.NewRequest("POST", translateServiceURL, bytes.NewBuffer(payload))
 	if err != nil {
-		fmt.Printf("Error making request: %v\n", err)
-		os.Exit(1)
+		return nil, fmt.Errorf("error creating request")
 	}
-	defer resp.Body.Close()
 
-	// Read the response
+	client := http.Client{}
+	resp, err := client.Do(httpRequest)
+	if err != nil {
+		return nil, fmt.Errorf("error in translation service request")
+	}
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("error in translation service request. status code: %d", resp.StatusCode)
+	}
+
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
-		fmt.Printf("Error reading response: %v\n", err)
-		os.Exit(1)
+		return nil, fmt.Errorf("error reading translation response")
 	}
-
-	// Retornamos la cantidad de ocurrencias y las líneas que coinciden
 	return &api.TranslateFileResponse{
 		Content: string(respBody),
 	}, nil
