@@ -2,7 +2,7 @@ package commands
 
 import (
 	"context"
-	"file-editor/api"
+	"file-editor/proto"
 	"time"
 )
 
@@ -10,10 +10,10 @@ type TranslateCommand struct {
 	Name string
 }
 
-func (c *TranslateCommand) Run(t api.TextEditorClient) (string, error) {
+func (c *TranslateCommand) Run(t proto.TextEditorClient) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
-	request := api.ReadFileRequest{
+	request := proto.ReadFileRequest{
 		Filename: c.Name,
 	}
 	r, err := t.ReadFile(ctx, &request)

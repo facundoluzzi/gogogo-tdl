@@ -1,9 +1,9 @@
 package main
 
 import (
-	"file-editor/api"
 	"file-editor/internal/handlers"
 	filesService "file-editor/pkg/files"
+	"file-editor/proto"
 	"log"
 	"net"
 
@@ -28,7 +28,7 @@ func main() {
 
 	handler := handlers.New(filesService)
 
-	api.RegisterTextEditorServer(s, handler)
+	proto.RegisterTextEditorServer(s, handler)
 	log.Printf("Server listening at %v", lis.Addr())
 	if err := s.Serve(lis); err != nil {
 		log.Fatalf("failed to serve: %v", err)

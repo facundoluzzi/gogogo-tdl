@@ -2,7 +2,7 @@ package commands
 
 import (
 	"context"
-	"file-editor/api"
+	"file-editor/proto"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -13,7 +13,7 @@ type SaveFileCommand struct {
 	Name string
 }
 
-func (c *SaveFileCommand) Run(t api.TextEditorClient) (string, error) {
+func (c *SaveFileCommand) Run(t proto.TextEditorClient) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
@@ -29,7 +29,7 @@ func (c *SaveFileCommand) Run(t api.TextEditorClient) (string, error) {
 		return "", fmt.Errorf("error al leer el archivo %s: %w", c.Name, err)
 	}
 
-	request := api.SaveFileRequest{
+	request := proto.SaveFileRequest{
 		Filename: c.Name,
 		Content:  content,
 	}

@@ -2,8 +2,8 @@ package client
 
 import (
 	"bufio"
-	"file-editor/api"
 	"file-editor/cmd/client/input"
+	"file-editor/proto"
 	"fmt"
 	"log"
 	"os"
@@ -18,7 +18,7 @@ import (
 type TextEditor struct {
 	parser *input.Parser
 	conn   *grpc.ClientConn
-	client api.TextEditorClient
+	client proto.TextEditorClient
 	reader *bufio.Reader
 }
 
@@ -36,7 +36,7 @@ func NewTextEditorClient(address string) (*TextEditor, error) {
 		return nil, err
 	}
 
-	c := api.NewTextEditorClient(conn)
+	c := proto.NewTextEditorClient(conn)
 
 	parser := input.Parser{}
 

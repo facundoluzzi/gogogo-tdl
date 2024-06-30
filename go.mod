@@ -8,7 +8,10 @@ require (
 	google.golang.org/protobuf v1.33.0
 )
 
-require github.com/mattn/go-runewidth v0.0.9 // indirect
+require (
+	github.com/golang/mock v1.6.0 // indirect
+	github.com/mattn/go-runewidth v0.0.9 // indirect
+)
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect

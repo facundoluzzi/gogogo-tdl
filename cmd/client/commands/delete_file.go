@@ -2,7 +2,7 @@ package commands
 
 import (
 	"context"
-	"file-editor/api"
+	"file-editor/proto"
 	"fmt"
 	"time"
 )
@@ -11,11 +11,11 @@ type DeleteFileCommand struct {
 	Name string
 }
 
-func (c *DeleteFileCommand) Run(t api.TextEditorClient) (string, error) {
+func (c *DeleteFileCommand) Run(t proto.TextEditorClient) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
 
-	request := api.DeleteFileRequest{
+	request := proto.DeleteFileRequest{
 		Filename: c.Name,
 	}
 
