@@ -13,10 +13,10 @@ type TranslateCommand struct {
 func (c *TranslateCommand) Run(t api.TextEditorClient) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
-	request := api.ReadFileRequest{
+	request := api.TranslateFileRequest{
 		Filename: c.Name,
 	}
-	r, err := t.ReadFile(ctx, &request)
+	r, err := t.TranslateText(ctx, &request)
 	if err != nil {
 		return "", err
 

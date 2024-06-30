@@ -2,12 +2,15 @@ package files
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"encoding/binary"
 	"encoding/json"
 	"file-editor/api"
 	"fmt"
+	"io"
 	"log"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -62,6 +65,8 @@ func (s *Service) Request(operationType OperationType, request interface{}) (res
 	case *api.AppendTextRequest:
 		filename = req.Filename
 	case *api.DeleteFileRequest:
+		filename = req.Filename
+	case *api.TranslateFileRequest:
 		filename = req.Filename
 	}
 
@@ -146,6 +151,9 @@ func (s *Service) handleFileCommands(fileChan chan Command) {
 		case Find:
 			request := command.Request.(*api.FindTextRequest)
 			response, err = s.FindText(request)
+		case Translate:
+			request := command.Request.(*api.TranslateFileRequest)
+			response, err = s.TranslateFile(request)
 		case Delete:
 			request := command.Request.(*api.DeleteTextRequest)
 			response, err = s.DeleteText(request)
@@ -442,6 +450,66 @@ func (s *Service) FindText(req *api.FindTextRequest) (*api.FindTextResponse, err
 	return &api.FindTextResponse{
 		Count: count,
 		Lines: lines,
+	}, nil
+}
+
+func (s *Service) TranslateFile(req *api.TranslateFileRequest) (*api.TranslateFileResponse, error) {
+	// Obtenemos la ruta del archivo
+	path, err := s.getFilePath(req.Filename)
+	if err != nil {
+		return nil, fmt.Errorf("error obteniendo la ruta del archivo: %w", err)
+	}
+
+	// Abrimos el archivo en modo lectura
+	content, err := os.ReadFile(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, NewFileNotFoundError("solicitud inválida, el archivo no existe")
+		}
+		return nil, err
+	}
+
+	// create body
+	payload := []map[string]string{
+		{
+			"contents":       string(content),
+			"sourceLanguage": "es",
+			"targetLanguage": "en",
+		},
+	}
+	// serialize payload
+	payloadBytes, err := json.Marshal(payload)
+	if err != nil {
+		fmt.Printf("Error marshaling payload: %v\n", err)
+		os.Exit(1)
+	}
+
+	// Create the HTTP request
+	httpReq, err := http.NewRequest("POST", "https://eec64fd8dabd4dfb8c180c5b47905cd5.api.mockbin.io/", bytes.NewReader(payloadBytes))
+	if err != nil {
+		fmt.Printf("Error creating request: %v\n", err)
+		os.Exit(1)
+	}
+
+	// send the request
+	client := &http.Client{}
+	resp, err := client.Do(httpReq)
+	if err != nil {
+		fmt.Printf("Error making request: %v\n", err)
+		os.Exit(1)
+	}
+	defer resp.Body.Close()
+
+	// Read the response
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Printf("Error reading response: %v\n", err)
+		os.Exit(1)
+	}
+
+	// Retornamos la cantidad de ocurrencias y las líneas que coinciden
+	return &api.TranslateFileResponse{
+		Content: string(respBody),
 	}, nil
 }
 

@@ -1,19 +1,10 @@
 package handlers
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"file-editor/api"
 	"file-editor/pkg/files"
-	"fmt"
-	"io"
-	"net/http"
-	"os"
-)
-
-const (
-	apiURL = "https://7fbf693ca6eb4dccbc232dc858de3b94.api.mockbin.io/"
 )
 
 type FilesService interface {
@@ -157,49 +148,16 @@ func (h *Handler) DeleteFile(ctx context.Context, req *api.DeleteFileRequest) (*
 	return res, nil
 }
 
-func (h *Handler) TranslateFile(ctx context.Context, req *api.ReadFileRequest) (*api.ReadFileResponse, error) {
+func (h *Handler) TranslateText(ctx context.Context, req *api.TranslateFileRequest) (*api.TranslateFileResponse, error) {
 	response, err := h.FilesService.Request(files.Translate, req)
 	if err != nil {
 		return nil, err
 	}
 
-	text := &api.ReadFileResponse{}
-	if err := json.Unmarshal([]byte(response.(string)), text); err != nil {
+	res := &api.TranslateFileResponse{}
+	if err := json.Unmarshal([]byte(response.(string)), res); err != nil {
 		return nil, err
 	}
 
-	payload := []map[string]string{
-		{"Text": text.Content},
-	}
-	// Translate text
-	payloadBytes, err := json.Marshal(payload)
-	if err != nil {
-		fmt.Printf("Error marshaling payload: %v\n", err)
-		os.Exit(1)
-	}
-
-	// Create the HTTP request
-	httpReq, err := http.NewRequest("POST", apiURL, bytes.NewBuffer(payloadBytes))
-	if err != nil {
-		fmt.Printf("Error creating request: %v\n", err)
-		os.Exit(1)
-	}
-
-	client := &http.Client{}
-	resp, err := client.Do(httpReq)
-	if err != nil {
-		fmt.Printf("Error making request: %v\n", err)
-		os.Exit(1)
-	}
-	defer resp.Body.Close()
-
-	// Read the response
-	respBody, err := io.ReadAll(resp.Body)
-	if err != nil {
-		fmt.Printf("Error reading response: %v\n", err)
-		os.Exit(1)
-	}
-	text.Content = string(respBody)
-
-	return text, nil
+	return res, nil
 }
