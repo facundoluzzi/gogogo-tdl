@@ -66,7 +66,7 @@ func (s *Service) Request(operationType OperationType, request interface{}) (res
 		filename = req.Filename
 	case *proto.DeleteFileRequest:
 		filename = req.Filename
-	case *api.TranslateFileRequest:
+	case *proto.TranslateFileRequest:
 		filename = req.Filename
 	}
 
@@ -153,7 +153,7 @@ func (s *Service) handleFileCommands(fileChan chan Command) {
 			request := command.Request.(*proto.FindTextRequest)
 			response, err = s.FindText(request)
 		case Translate:
-			request := command.Request.(*api.TranslateFileRequest)
+			request := command.Request.(*proto.TranslateFileRequest)
 			response, err = s.TranslateFile(request)
 		case Delete:
 			request := command.Request.(*proto.DeleteTextRequest)
@@ -454,7 +454,7 @@ func (s *Service) FindText(req *proto.FindTextRequest) (*proto.FindTextResponse,
 	}, nil
 }
 
-func (s *Service) TranslateFile(req *api.TranslateFileRequest) (*api.TranslateFileResponse, error) {
+func (s *Service) TranslateFile(req *proto.TranslateFileRequest) (*proto.TranslateFileResponse, error) {
 	// Obtenemos la ruta del archivo
 	path, err := s.getFilePath(req.Filename)
 	if err != nil {
@@ -499,7 +499,7 @@ func (s *Service) TranslateFile(req *api.TranslateFileRequest) (*api.TranslateFi
 	if err != nil {
 		return nil, fmt.Errorf("error reading translation response")
 	}
-	return &api.TranslateFileResponse{
+	return &proto.TranslateFileResponse{
 		Content: string(respBody),
 	}, nil
 }
