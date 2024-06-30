@@ -2,7 +2,7 @@ package commands
 
 import (
 	"context"
-	"file-editor/api"
+	"file-editor/proto"
 	"fmt"
 	"strings"
 	"time"
@@ -13,11 +13,11 @@ type NewFileCommand struct {
 	Content string
 }
 
-func (c *NewFileCommand) Run(t api.TextEditorClient) (string, error) {
+func (c *NewFileCommand) Run(t proto.TextEditorClient) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
 
-	request := api.NewFileRequest{
+	request := proto.NewFileRequest{
 		Filename: c.Name,
 		Content:  c.Content,
 	}

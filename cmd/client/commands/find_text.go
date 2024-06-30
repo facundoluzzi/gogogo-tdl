@@ -2,7 +2,7 @@ package commands
 
 import (
 	"context"
-	"file-editor/api"
+	"file-editor/proto"
 	"fmt"
 	"strings"
 	"time"
@@ -13,11 +13,11 @@ type FindCommand struct {
 	Text string
 }
 
-func (c *FindCommand) Run(t api.TextEditorClient) (string, error) {
+func (c *FindCommand) Run(t proto.TextEditorClient) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
 
-	request := api.FindTextRequest{
+	request := proto.FindTextRequest{
 		Filename:   c.Name,
 		SearchText: c.Text,
 	}

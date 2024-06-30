@@ -2,7 +2,7 @@ package commands
 
 import (
 	"context"
-	"file-editor/api"
+	"file-editor/proto"
 	"fmt"
 	"strings"
 	"time"
@@ -11,10 +11,10 @@ import (
 type ReadAllCommand struct {
 }
 
-func (c *ReadAllCommand) Run(t api.TextEditorClient) (string, error) {
+func (c *ReadAllCommand) Run(t proto.TextEditorClient) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
-	r, err := t.ReadAllFiles(ctx, &api.Empty{})
+	r, err := t.ReadAllFiles(ctx, &proto.Empty{})
 	if err != nil {
 		return "", err
 

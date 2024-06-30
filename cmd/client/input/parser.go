@@ -2,8 +2,8 @@ package input
 
 import (
 	"errors"
-	"file-editor/api"
 	"file-editor/cmd/client/commands"
+	"file-editor/proto"
 	"strconv"
 )
 
@@ -30,7 +30,7 @@ type Parser struct {
 }
 
 type Command interface {
-	Run(api.TextEditorClient) (string, error)
+	Run(proto.TextEditorClient) (string, error)
 	Print()
 }
 

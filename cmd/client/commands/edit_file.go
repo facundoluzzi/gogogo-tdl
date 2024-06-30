@@ -2,7 +2,7 @@ package commands
 
 import (
 	"context"
-	"file-editor/api"
+	"file-editor/proto"
 	"log"
 	"strings"
 	"time"
@@ -17,7 +17,7 @@ var (
 	fileName string
 )
 
-func initEditor(t api.TextEditorClient) string {
+func initEditor(t proto.TextEditorClient) string {
 	if err := termbox.Init(); err != nil {
 		log.Fatal(err)
 	}
@@ -31,7 +31,7 @@ func initEditor(t api.TextEditorClient) string {
 }
 
 func draw() {
-	termbox.Clear(termbox.ColorDefault, termbox.ColorDefault)
+	_ = termbox.Clear(termbox.ColorDefault, termbox.ColorDefault)
 	for y, line := range content {
 		for x, ch := range line {
 			termbox.SetCell(x, y, ch, termbox.ColorDefault, termbox.ColorDefault)
@@ -51,10 +51,10 @@ func draw() {
 		termbox.SetCell(width-len(helpMessageRight)+i, height-1, ch, termbox.ColorDefault, termbox.ColorDefault)
 	}
 
-	termbox.Flush()
+	_ = termbox.Flush()
 }
 
-func handleEvents(t api.TextEditorClient) string {
+func handleEvents(t proto.TextEditorClient) string {
 	for {
 		switch ev := termbox.PollEvent(); ev.Type {
 		case termbox.EventKey:
@@ -144,19 +144,20 @@ func insertNewline() {
 	cursorX = 0
 }
 
-func saveFile(t api.TextEditorClient) {
+func saveFile(t proto.TextEditorClient) {
 	var flatContent []byte
 	for _, line := range content {
 		flatContent = append(flatContent, []byte(string(line))...)
 		flatContent = append(flatContent, '\n')
 	}
 
-	request := api.SaveFileRequest{
+	request := proto.SaveFileRequest{
 		Filename: fileName,
 		Content:  flatContent,
 	}
 
-	ctx, _ := context.WithTimeout(context.Background(), time.Minute*1)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute*1)
+	defer cancel()
 
 	_, err := t.SaveFile(ctx, &request)
 	if err != nil {
@@ -185,11 +186,11 @@ type EditCommand struct {
 	Name string
 }
 
-func (c *EditCommand) Run(t api.TextEditorClient) (string, error) {
+func (c *EditCommand) Run(t proto.TextEditorClient) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
-	request := api.ReadFileRequest{
+	request := proto.ReadFileRequest{
 		Filename: c.Name,
 	}
 

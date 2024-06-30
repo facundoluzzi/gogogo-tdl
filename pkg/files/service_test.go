@@ -6,10 +6,11 @@ import (
 	"sort"
 	"testing"
 
+	"file-editor/proto"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 
-	"file-editor/api"
 	"file-editor/pkg/files"
 )
 
@@ -43,7 +44,7 @@ func (suite *FileServiceSuite) TestSaveFileSuccess() {
 	filePath := filepath.Join(suite.temporaryDirectory, fileName)
 	content := []byte("Hello, World!")
 
-	request := &api.SaveFileRequest{
+	request := &proto.SaveFileRequest{
 		Filename: fileName,
 		Content:  content,
 	}
@@ -69,7 +70,7 @@ func (suite *FileServiceSuite) TestReadFileSuccess() {
 	err := os.WriteFile(filePath, content, 0644)
 	assert.NoError(suite.T(), err)
 
-	response, err := suite.service.ReadFile(&api.ReadFileRequest{Filename: fileName})
+	response, err := suite.service.ReadFile(&proto.ReadFileRequest{Filename: fileName})
 	suite.Require().NoError(err)
 	suite.Require().NotNil(response)
 
@@ -79,7 +80,7 @@ func (suite *FileServiceSuite) TestReadFileSuccess() {
 func (suite *FileServiceSuite) TestReadFileErrorFileNotFound() {
 	fileName := "testfile.txt"
 
-	response, err := suite.service.ReadFile(&api.ReadFileRequest{Filename: fileName})
+	response, err := suite.service.ReadFile(&proto.ReadFileRequest{Filename: fileName})
 	suite.Require().ErrorIs(&files.FileNotFoundError{}, err)
 	suite.Require().Nil(response)
 }
@@ -92,7 +93,7 @@ func (suite *FileServiceSuite) TestFindTextSuccess() {
 	err := os.WriteFile(filePath, content, 0644)
 	suite.Require().NoError(err)
 
-	request := &api.FindTextRequest{
+	request := &proto.FindTextRequest{
 		Filename:   fileName,
 		SearchText: "Hello",
 	}
@@ -109,7 +110,7 @@ func (suite *FileServiceSuite) TestFindTextSuccess() {
 }
 
 func (suite *FileServiceSuite) TestFindTextErrorFileNotFound() {
-	request := &api.FindTextRequest{
+	request := &proto.FindTextRequest{
 		Filename:   "testfile.txt",
 		SearchText: "Hello",
 	}
@@ -164,7 +165,7 @@ func (suite *FileServiceSuite) TestDeleteTextSuccess() {
 	err := os.WriteFile(filePath, content, 0644)
 	suite.Require().NoError(err)
 
-	request := &api.DeleteTextRequest{
+	request := &proto.DeleteTextRequest{
 		Filename:      fileName,
 		StartPosition: 0,
 		Length:        7,
@@ -180,7 +181,7 @@ func (suite *FileServiceSuite) TestDeleteTextSuccess() {
 }
 
 func (suite *FileServiceSuite) TestDeleteTextErrorFileNotFound() {
-	request := &api.DeleteTextRequest{
+	request := &proto.DeleteTextRequest{
 		Filename:      "testfile.txt",
 		StartPosition: 0,
 		Length:        7,
@@ -199,7 +200,7 @@ func (suite *FileServiceSuite) TestDeleteTextErrorLengthOutOfRange() {
 	err := os.WriteFile(filePath, content, 0644)
 	suite.Require().NoError(err)
 
-	request := &api.DeleteTextRequest{
+	request := &proto.DeleteTextRequest{
 		Filename:      fileName,
 		StartPosition: 7,
 		Length:        15,
@@ -219,7 +220,7 @@ func (suite *FileServiceSuite) TestFindAndReplaceSuccess() {
 	err := os.WriteFile(filePath, content, 0644)
 	suite.Require().NoError(err)
 
-	request := &api.FindAndReplaceRequest{
+	request := &proto.FindAndReplaceRequest{
 		Filename:    fileName,
 		FindText:    "World",
 		ReplaceText: "Universe",
@@ -231,7 +232,7 @@ func (suite *FileServiceSuite) TestFindAndReplaceSuccess() {
 }
 
 func (suite *FileServiceSuite) TestFindAndReplaceErrorFileNotFound() {
-	request := &api.FindAndReplaceRequest{
+	request := &proto.FindAndReplaceRequest{
 		Filename:    "testfile.txt",
 		FindText:    "World",
 		ReplaceText: "Universe",
@@ -250,7 +251,7 @@ func (suite *FileServiceSuite) TestFindAndReplaceReturnsZeroCount() {
 	err := os.WriteFile(filePath, content, 0644)
 	suite.Require().NoError(err)
 
-	request := &api.FindAndReplaceRequest{
+	request := &proto.FindAndReplaceRequest{
 		Filename:    fileName,
 		FindText:    "Universe",
 		ReplaceText: "World",
@@ -271,7 +272,7 @@ func (suite *FileServiceSuite) TestFindAndReplaceSuccessMultipleReplacements() {
 	err := os.WriteFile(filePath, content, 0644)
 	suite.Require().NoError(err)
 
-	request := &api.FindAndReplaceRequest{
+	request := &proto.FindAndReplaceRequest{
 		Filename:    fileName,
 		FindText:    "World",
 		ReplaceText: "Universe",
@@ -288,7 +289,7 @@ func (suite *FileServiceSuite) TestNewFileSuccess() {
 	fileName := "testfile.txt"
 	content := "Hello, World!"
 
-	request := &api.NewFileRequest{
+	request := &proto.NewFileRequest{
 		Filename: fileName,
 		Content:  content,
 	}
@@ -308,7 +309,7 @@ func (suite *FileServiceSuite) TestNewFileErrorFileAlreadyExists() {
 	err := os.WriteFile(filePath, content, 0644)
 	suite.Require().NoError(err)
 
-	request := &api.NewFileRequest{
+	request := &proto.NewFileRequest{
 		Filename: fileName,
 		Content:  "Hello, World!",
 	}
@@ -321,7 +322,7 @@ func (suite *FileServiceSuite) TestNewFileErrorFileAlreadyExists() {
 func (suite *FileServiceSuite) TestNewFileWithoutContentSucces() {
 
 	fileName := "testfile.txt"
-	request := &api.NewFileRequest{
+	request := &proto.NewFileRequest{
 		Filename: fileName,
 		Content:  "",
 	}
@@ -341,7 +342,7 @@ func (suite *FileServiceSuite) TestAppendTextSuccess() {
 	err := os.WriteFile(filePath, content, 0644)
 	suite.Require().NoError(err)
 
-	request := &api.AppendTextRequest{
+	request := &proto.AppendTextRequest{
 		Filename: fileName,
 		Content:  "Hello, Universe!",
 	}
@@ -354,7 +355,7 @@ func (suite *FileServiceSuite) TestAppendTextSuccess() {
 }
 
 func (suite *FileServiceSuite) TestAppendTextErrorFileNotFound() {
-	request := &api.AppendTextRequest{
+	request := &proto.AppendTextRequest{
 		Filename: "testfile.txt",
 		Content:  "Hello, Universe!",
 	}
@@ -372,7 +373,7 @@ func (suite *FileServiceSuite) TestAppendTextWithoutContentSuccess() {
 	err := os.WriteFile(filePath, content, 0644)
 	suite.Require().NoError(err)
 
-	request := &api.AppendTextRequest{
+	request := &proto.AppendTextRequest{
 		Filename: fileName,
 		Content:  "",
 	}
@@ -392,7 +393,7 @@ func (suite *FileServiceSuite) TestDeleteFileSuccess() {
 	err := os.WriteFile(filePath, content, 0644)
 	suite.Require().NoError(err)
 
-	request := &api.DeleteFileRequest{
+	request := &proto.DeleteFileRequest{
 		Filename: fileName,
 	}
 
@@ -404,7 +405,7 @@ func (suite *FileServiceSuite) TestDeleteFileSuccess() {
 }
 
 func (suite *FileServiceSuite) TestDeleteFileErrorFileNotFound() {
-	request := &api.DeleteFileRequest{
+	request := &proto.DeleteFileRequest{
 		Filename: "testfile.txt",
 	}
 

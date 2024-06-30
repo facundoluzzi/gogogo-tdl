@@ -2,7 +2,7 @@ package commands
 
 import (
 	"context"
-	"file-editor/api"
+	"file-editor/proto"
 	"time"
 )
 
@@ -11,11 +11,11 @@ type AppendTextCommand struct {
 	Content string
 }
 
-func (c *AppendTextCommand) Run(t api.TextEditorClient) (string, error) {
+func (c *AppendTextCommand) Run(t proto.TextEditorClient) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
 
-	request := api.AppendTextRequest{
+	request := proto.AppendTextRequest{
 		Filename: c.Name,
 		Content:  c.Content,
 	}

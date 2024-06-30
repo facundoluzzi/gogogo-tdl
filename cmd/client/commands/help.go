@@ -1,13 +1,13 @@
 package commands
 
 import (
-	"file-editor/api"
+	"file-editor/proto"
 )
 
 type HelpCommand struct {
 }
 
-func (c *HelpCommand) Run(t api.TextEditorClient) (string, error) {
+func (c *HelpCommand) Run(t proto.TextEditorClient) (string, error) {
 	response := `
 		To use the client the following commands are available:
 		---------------------------------------------------------------------------------------

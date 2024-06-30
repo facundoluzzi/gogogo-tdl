@@ -2,7 +2,7 @@ package commands
 
 import (
 	"context"
-	"file-editor/api"
+	"file-editor/proto"
 	"fmt"
 	"strings"
 	"time"
@@ -14,11 +14,11 @@ type FindAndReplaceCommand struct {
 	Replace string
 }
 
-func (c *FindAndReplaceCommand) Run(t api.TextEditorClient) (string, error) {
+func (c *FindAndReplaceCommand) Run(t proto.TextEditorClient) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
-	request := api.FindAndReplaceRequest{
+	request := proto.FindAndReplaceRequest{
 		Filename:    c.Name,
 		FindText:    c.Find,
 		ReplaceText: c.Replace,

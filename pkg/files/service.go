@@ -6,7 +6,7 @@ import (
 	"context"
 	"encoding/binary"
 	"encoding/json"
-	"file-editor/api"
+	"file-editor/proto"
 	"fmt"
 	"io"
 	"log"
@@ -50,21 +50,21 @@ func (s *Service) Request(operationType OperationType, request interface{}) (res
 	var filename string
 
 	switch req := request.(type) {
-	case *api.FindTextRequest:
+	case *proto.FindTextRequest:
 		filename = req.Filename
-	case *api.SaveFileRequest:
+	case *proto.SaveFileRequest:
 		filename = req.Filename
-	case *api.ReadFileRequest:
+	case *proto.ReadFileRequest:
 		filename = req.Filename
-	case *api.DeleteTextRequest:
+	case *proto.DeleteTextRequest:
 		filename = req.Filename
-	case *api.FindAndReplaceRequest:
+	case *proto.FindAndReplaceRequest:
 		filename = req.Filename
-	case *api.NewFileRequest:
+	case *proto.NewFileRequest:
 		filename = req.Filename
-	case *api.AppendTextRequest:
+	case *proto.AppendTextRequest:
 		filename = req.Filename
-	case *api.DeleteFileRequest:
+	case *proto.DeleteFileRequest:
 		filename = req.Filename
 	case *api.TranslateFileRequest:
 		filename = req.Filename
@@ -77,7 +77,7 @@ func (s *Service) Request(operationType OperationType, request interface{}) (res
 
 		switch operationType {
 		case Read:
-			response, err = s.ReadFile(request.(*api.ReadFileRequest))
+			response, err = s.ReadFile(request.(*proto.ReadFileRequest))
 		case ReadAll:
 			response, err = s.ReadAllFiles()
 		default:
@@ -119,6 +119,7 @@ func (s *Service) deleteFileChan(filename string) {
 	if _, exists := s.fileChans[filename]; !exists {
 		return
 	}
+
 	close(s.fileChans[filename])
 	delete(s.fileChans, filename)
 }
@@ -146,28 +147,28 @@ func (s *Service) handleFileCommands(fileChan chan Command) {
 
 		switch command.Type {
 		case Save:
-			request := command.Request.(*api.SaveFileRequest)
+			request := command.Request.(*proto.SaveFileRequest)
 			response, err = s.SaveFile(request)
 		case Find:
-			request := command.Request.(*api.FindTextRequest)
+			request := command.Request.(*proto.FindTextRequest)
 			response, err = s.FindText(request)
 		case Translate:
 			request := command.Request.(*api.TranslateFileRequest)
 			response, err = s.TranslateFile(request)
 		case Delete:
-			request := command.Request.(*api.DeleteTextRequest)
+			request := command.Request.(*proto.DeleteTextRequest)
 			response, err = s.DeleteText(request)
 		case FindAndReplace:
-			request := command.Request.(*api.FindAndReplaceRequest)
+			request := command.Request.(*proto.FindAndReplaceRequest)
 			response, err = s.FindAndReplace(request)
 		case NewFile:
-			request := command.Request.(*api.NewFileRequest)
+			request := command.Request.(*proto.NewFileRequest)
 			response, err = s.NewFile(request)
 		case Append:
-			request := command.Request.(*api.AppendTextRequest)
+			request := command.Request.(*proto.AppendTextRequest)
 			response, err = s.AppendText(request)
 		case DeleteFile:
-			request := command.Request.(*api.DeleteFileRequest)
+			request := command.Request.(*proto.DeleteFileRequest)
 			response, err = s.DeleteFile(request)
 		default:
 			err = fmt.Errorf("command not supported")
@@ -190,7 +191,7 @@ func (s *Service) sendResponse(responseChan chan interface{}, response interface
 	}
 }
 
-func (s *Service) DeleteText(request *api.DeleteTextRequest) (*api.DeleteTextResponse, error) {
+func (s *Service) DeleteText(request *proto.DeleteTextRequest) (*proto.DeleteTextResponse, error) {
 	path, err := s.getFilePath(request.Filename)
 	if err != nil {
 		return nil, err
@@ -215,11 +216,11 @@ func (s *Service) DeleteText(request *api.DeleteTextRequest) (*api.DeleteTextRes
 	if err != nil {
 		return nil, err
 	} else {
-		return &api.DeleteTextResponse{Message: "texto eliminado exitosamente"}, nil
+		return &proto.DeleteTextResponse{Message: "texto eliminado exitosamente"}, nil
 	}
 }
 
-func (s *Service) DeleteFile(request *api.DeleteFileRequest) (*api.DeleteFileResponse, error) {
+func (s *Service) DeleteFile(request *proto.DeleteFileRequest) (*proto.DeleteFileResponse, error) {
 	path, err := s.getFilePath(request.Filename)
 	if err != nil {
 		return nil, err
@@ -235,12 +236,12 @@ func (s *Service) DeleteFile(request *api.DeleteFileRequest) (*api.DeleteFileRes
 
 	s.deleteFileChan(request.Filename)
 
-	return &api.DeleteFileResponse{
+	return &proto.DeleteFileResponse{
 		Message: fmt.Sprintf("Archivo '%s' ha sido eliminado exitosamente", request.Filename),
 	}, nil
 }
 
-func (s *Service) AppendText(request *api.AppendTextRequest) (*api.AppendTextResponse, error) {
+func (s *Service) AppendText(request *proto.AppendTextRequest) (*proto.AppendTextResponse, error) {
 	path, err := s.getFilePath(request.Filename)
 	if err != nil {
 		return nil, err
@@ -260,12 +261,12 @@ func (s *Service) AppendText(request *api.AppendTextRequest) (*api.AppendTextRes
 		return nil, err
 	}
 
-	return &api.AppendTextResponse{
+	return &proto.AppendTextResponse{
 		Message: fmt.Sprintf("Texto '%s' ha sido agregado exitosamente a '%s'", request.Content, request.Filename),
 	}, nil
 }
 
-func (s *Service) NewFile(request *api.NewFileRequest) (*api.NewFileResponse, error) {
+func (s *Service) NewFile(request *proto.NewFileRequest) (*proto.NewFileResponse, error) {
 	path, err := s.getFilePath(request.Filename)
 	if err != nil {
 		return nil, err
@@ -286,12 +287,12 @@ func (s *Service) NewFile(request *api.NewFileRequest) (*api.NewFileResponse, er
 		return nil, err
 	}
 
-	return &api.NewFileResponse{
+	return &proto.NewFileResponse{
 		Response: fmt.Sprintf("Archivo '%s' ha sido creado exitosamente", request.Filename),
 	}, nil
 }
 
-func (s *Service) FindAndReplace(request *api.FindAndReplaceRequest) (*api.FindAndReplaceResponse, error) {
+func (s *Service) FindAndReplace(request *proto.FindAndReplaceRequest) (*proto.FindAndReplaceResponse, error) {
 	path, err := s.getFilePath(request.Filename)
 	if err != nil {
 		return nil, err
@@ -322,13 +323,13 @@ func (s *Service) FindAndReplace(request *api.FindAndReplaceRequest) (*api.FindA
 		return nil, err
 	}
 
-	return &api.FindAndReplaceResponse{
+	return &proto.FindAndReplaceResponse{
 		Count:     count,
 		Positions: positions,
 	}, nil
 }
 
-func (s *Service) ReadFile(request *api.ReadFileRequest) (*api.ReadFileResponse, error) {
+func (s *Service) ReadFile(request *proto.ReadFileRequest) (*proto.ReadFileResponse, error) {
 	// Obtenenemos la ruta del archivo
 	path, err := s.getFilePath(request.Filename)
 	if err != nil {
@@ -345,11 +346,11 @@ func (s *Service) ReadFile(request *api.ReadFileRequest) (*api.ReadFileResponse,
 		return nil, err
 	}
 
-	return &api.ReadFileResponse{Content: string(content)}, nil
+	return &proto.ReadFileResponse{Content: string(content)}, nil
 }
 
 // SaveFile crea un nuevo archivo usando el contenido proporcionado en la solicitud
-func (s *Service) SaveFile(request *api.SaveFileRequest) (*api.SaveFileResponse, error) {
+func (s *Service) SaveFile(request *proto.SaveFileRequest) (*proto.SaveFileResponse, error) {
 	ctx := context.Background()
 
 	fileBytes := request.Content
@@ -404,12 +405,12 @@ func (s *Service) SaveFile(request *api.SaveFileRequest) (*api.SaveFileResponse,
 	wg.Wait()
 	delete(s.waitGroups, fileName)
 
-	return &api.SaveFileResponse{
+	return &proto.SaveFileResponse{
 		Response: fmt.Sprintf("Archivo '%s' ha sido subido exitosamente", fileName),
 	}, nil
 }
 
-func (s *Service) FindText(req *api.FindTextRequest) (*api.FindTextResponse, error) {
+func (s *Service) FindText(req *proto.FindTextRequest) (*proto.FindTextResponse, error) {
 	// Obtenemos la ruta del archivo
 	path, err := s.getFilePath(req.Filename)
 	if err != nil {
@@ -447,7 +448,7 @@ func (s *Service) FindText(req *api.FindTextRequest) (*api.FindTextResponse, err
 	}
 
 	// Retornamos la cantidad de ocurrencias y las líneas que coinciden
-	return &api.FindTextResponse{
+	return &proto.FindTextResponse{
 		Count: count,
 		Lines: lines,
 	}, nil
@@ -504,7 +505,7 @@ func (s *Service) TranslateFile(req *api.TranslateFileRequest) (*api.TranslateFi
 }
 
 // ReadAllFiles lee todos los archivos en el working directory y retorna una respuesta que contiene el nombre y el contenido de cada archivo
-func (s *Service) ReadAllFiles() (*api.ReadAllFilesResponse, error) {
+func (s *Service) ReadAllFiles() (*proto.ReadAllFilesResponse, error) {
 	// return s.readAllFilesSynchronously() //Para comparar la ventaja usando threads,
 	return s.readAllFilesConcurrently()
 }
@@ -529,32 +530,9 @@ func (s *Service) RunConsumer() {
 		filename := string(bytes[headerSize : headerSize+fileNameLen])
 		data := bytes[headerSize+fileNameLen:]
 
-		// Obtenemos la ruta del archivo donde se escribirán los datos
-		path, err := s.getFilePath(filename)
+		err := s.writeFile(filename, data)
 		if err != nil {
-			fmt.Printf("error obteniendo la ruta del archivo: %s\n", err.Error())
-			continue
-		}
-
-		// Abrimos el archivo en modo escritura, creándolo si no existe y agregando al final si existe
-		file, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
-		if err != nil {
-			fmt.Printf("error abriendo el archivo: %s\n", err.Error())
-			continue
-		}
-
-		// Escribimos los datos en el archivo
-		_, err = file.Write(data)
-		if err != nil {
-			fmt.Printf("error escribiendo en el archivo: %s\n", err.Error())
-			file.Close()
-			continue
-		}
-
-		// Cerramos el archivo después de escribir
-		err = file.Close()
-		if err != nil {
-			fmt.Printf("error cerrando el archivo: %s\n", err.Error())
+			fmt.Println(err.Error())
 			continue
 		}
 
@@ -564,13 +542,39 @@ func (s *Service) RunConsumer() {
 				wg.Done()
 			}
 		}
-
-		// Esperamos un segundo antes de procesar el próximo byte slice
-		time.Sleep(time.Second)
 	}
 }
 
-func (s *Service) readAllFilesConcurrently() (*api.ReadAllFilesResponse, error) {
+func (s *Service) writeFile(filename string, data []byte) error {
+	// Obtenemos la ruta del archivo donde se escribirán los datos
+	path, err := s.getFilePath(filename)
+	if err != nil {
+		return fmt.Errorf("error obteniendo la ruta del archivo: %w", err)
+	}
+
+	// Abrimos el archivo en modo escritura, creándolo si no existe y agregando al final si existe
+	file, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
+	if err != nil {
+		return fmt.Errorf("error abriendo el archivo: %w", err)
+	}
+
+	// Escribimos los datos en el archivo
+	_, err = file.Write(data)
+	if err != nil {
+		file.Close()
+		return fmt.Errorf("error escribiendo en el archivo: %w", err)
+	}
+
+	// Cerramos el archivo después de escribir
+	err = file.Close()
+	if err != nil {
+		return fmt.Errorf("error cerrando el archivo: %w", err)
+	}
+
+	return nil
+}
+
+func (s *Service) readAllFilesConcurrently() (*proto.ReadAllFilesResponse, error) {
 	start := time.Now()
 
 	wg := &sync.WaitGroup{}
@@ -621,11 +625,11 @@ func (s *Service) readAllFilesConcurrently() (*api.ReadAllFilesResponse, error) 
 		close(results)
 	}()
 
-	response := &api.ReadAllFilesResponse{}
+	response := &proto.ReadAllFilesResponse{}
 
 	// Esta es la forma mas sencilla de iterar un vector de cualquier tipo en Go, pero tambien se admite la forma -> for int i:= 0; i < len(results); i++ {}
 	for result := range results {
-		response.Content = append(response.Content, &api.FileContent{
+		response.Content = append(response.Content, &proto.FileContent{
 			Name:    result.Name,
 			Content: result.Content,
 		})
@@ -640,7 +644,7 @@ func (s *Service) readAllFilesConcurrently() (*api.ReadAllFilesResponse, error) 
 // readAllFilesSynchronously lee todos los archivos en un directorio especificado de manera sincrona y
 // retorna una respuesta que contiene el nombre y el contenido de cada archivo.
 // nolint:unused
-func (s *Service) readAllFilesSynchronously() (*api.ReadAllFilesResponse, error) {
+func (s *Service) readAllFilesSynchronously() (*proto.ReadAllFilesResponse, error) {
 	start := time.Now()
 
 	cwd, err := os.Getwd()
@@ -656,7 +660,7 @@ func (s *Service) readAllFilesSynchronously() (*api.ReadAllFilesResponse, error)
 		return nil, fmt.Errorf("no se pudo leer el directorio: %w", err)
 	}
 
-	response := &api.ReadAllFilesResponse{}
+	response := &proto.ReadAllFilesResponse{}
 
 	// Iteramos sobre todos los archivos en el working directory
 	for _, file := range directories {
@@ -669,7 +673,7 @@ func (s *Service) readAllFilesSynchronously() (*api.ReadAllFilesResponse, error)
 				continue
 			}
 
-			response.Content = append(response.Content, &api.FileContent{
+			response.Content = append(response.Content, &proto.FileContent{
 				Name:    file.Name(),
 				Content: string(content),
 			})
