@@ -4,8 +4,10 @@ import (
 	"file-editor/internal/handlers"
 	filesService "file-editor/pkg/files"
 	"file-editor/proto"
+	"fmt"
 	"log"
 	"net"
+	"os"
 
 	"google.golang.org/grpc"
 )
@@ -21,6 +23,16 @@ func main() {
 		grpc.MaxSendMsgSize(100 * 1024 * 1024), // 100 MB
 	}
 	s := grpc.NewServer(opts...)
+
+	cwd, err := os.Getwd()
+	if err != nil {
+		log.Fatalf("failed to get current working directory: %v", err)
+	}
+	directory := fmt.Sprintf("%s/%s", cwd, filesService.FilesFolder)
+	err = os.MkdirAll(directory, os.ModePerm)
+	if err != nil {
+		log.Fatalf("failed to create storage directory: %v", err)
+	}
 
 	ch := make(chan []byte)
 

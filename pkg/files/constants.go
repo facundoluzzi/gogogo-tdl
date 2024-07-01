@@ -1,6 +1,6 @@
 package files
 
-const filesFolder = "filesstorage"
+const FilesFolder = "filesstorage"
 
 const bytesSize = 2
 

@@ -586,7 +586,7 @@ func (s *Service) readAllFilesConcurrently() (*proto.ReadAllFilesResponse, error
 		return nil, fmt.Errorf("error obteniendo el directorio de trabajo actual: %w", err)
 	}
 
-	directory := fmt.Sprintf("%s/%s", cwd, filesFolder)
+	directory := fmt.Sprintf("%s/%s", cwd, FilesFolder)
 
 	// Leemos los archivos en el directorio especificado
 	directories, err := os.ReadDir(directory)
@@ -652,7 +652,7 @@ func (s *Service) readAllFilesSynchronously() (*proto.ReadAllFilesResponse, erro
 		return nil, fmt.Errorf("error obteniendo el directorio de trabajo actual: %w", err)
 	}
 
-	directory := fmt.Sprintf("%s/%s", cwd, filesFolder)
+	directory := fmt.Sprintf("%s/%s", cwd, FilesFolder)
 
 	// Leemos los archivos en el directorio especificado
 	directories, err := os.ReadDir(directory)
@@ -693,5 +693,5 @@ func (s *Service) getFilePath(filename string) (string, error) {
 		return "", fmt.Errorf("error obteniendo el directorio de trabajo actual: %w", err)
 	}
 
-	return filepath.Join(cwd, filesFolder, filename), nil
+	return filepath.Join(cwd, FilesFolder, filename), nil
 }
